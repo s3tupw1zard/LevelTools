@@ -1,6 +1,7 @@
 package me.byteful.plugin.leveltools.util;
 
 import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT;
 import me.byteful.plugin.leveltools.LevelToolsPlugin;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -248,7 +249,7 @@ public final class LevelToolsUtil {
             return new PDCLevelToolsItem(stack, meta);
         }
 
-        final LegacyLevelData legacy = NBT.get(stack, nbt -> new LegacyLevelData(
+        final LegacyLevelData legacy = NBT.get(stack, (ReadableItemNBT nbt) -> new LegacyLevelData(
                 nbt.hasTag(LEGACY_LEVEL_KEY) ? nbt.getInteger(LEGACY_LEVEL_KEY) : null,
                 nbt.hasTag(LEGACY_XP_KEY) ? nbt.getDouble(LEGACY_XP_KEY) : null,
                 nbt.hasTag(LEGACY_REWARD_KEY) ? nbt.getInteger(LEGACY_REWARD_KEY) : null));

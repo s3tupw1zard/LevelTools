@@ -8,9 +8,6 @@ plugins {
 repositories {
     mavenCentral()
     maven {
-        url = uri('https://hub.spigotmc.org/nexus/content/repositories/snapshots/')
-    }
-    maven {
         url = uri('https://repo.papermc.io/repository/maven-public/')
     }
     maven {
@@ -45,10 +42,9 @@ dependencies {
     implementation 'org.bstats:bstats-bukkit:3.2.1'
     implementation 'com.jeff-media:MorePersistentDataTypes:2.4.0'
 
-    compileOnly files('libs/folia-api-1.20.4-R0.1-SNAPSHOT.jar') // Modified API jar with Java 8 support
+    compileOnly 'io.papermc.paper:paper-api:26.2.build.+'
     compileOnly 'net.kyori:adventure-api:4.26.1'
     compileOnly 'net.kyori:adventure-platform-bukkit:4.4.1'
-    compileOnly 'org.spigotmc:spigot-api:1.14.4-R0.1-SNAPSHOT'
     compileOnly 'org.jetbrains:annotations:26.1.0'
     compileOnly 'me.clip:placeholderapi:2.12.2'
 }
@@ -56,7 +52,14 @@ dependencies {
 group = 'me.byteful.plugin'
 version = '2.2.0'
 description = 'LevelTools'
-java.sourceCompatibility = JavaVersion.VERSION_17
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
 
 publishing {
     publications {
@@ -81,14 +84,9 @@ shadowJar {
     relocate 'com.jeff-media.morepersistentdatatypes', 'me.byteful.plugin.leveltools.libs.morepersistentdatatypes'
 }
 
-def targetJavaVersion = 8
-java {
-    sourceCompatibility = 17
-    targetCompatibility = 8
-}
-
 tasks.withType(JavaCompile).configureEach {
-    options.release.set(targetJavaVersion)
+    options.release.set(25)
+    options.compilerArgs += ["-parameters"]
 }
 
 processResources {
@@ -98,10 +96,6 @@ processResources {
     filesMatching('plugin.yml') {
         expand props
     }
-}
-
-compileJava { // Preserve parameter names in the bytecode
-    options.compilerArgs += ["-parameters"]
 }
 
 tasks.build.dependsOn += shadowJar

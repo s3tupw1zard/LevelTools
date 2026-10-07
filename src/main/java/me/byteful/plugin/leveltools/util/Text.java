@@ -40,7 +40,7 @@ public final class Text {
 
         if (c == '&') {
           if (COLOR_CODES.contains(Character.toLowerCase(n))) {
-            builder.append(ChatColor.COLOR_CHAR).append(Character.toLowerCase(n));
+            builder.append(COLOR_CHAR).append(Character.toLowerCase(n));
             i++;
             continue;
           }
@@ -48,9 +48,9 @@ public final class Text {
           if (n == '#' && i + 7 < len) {
             String hexCode = input.substring(i + 2, i + 8);
             if (hexCode.chars().allMatch(Text::isHexChar)) {
-              builder.append(ChatColor.COLOR_CHAR).append('x');
+              builder.append(COLOR_CHAR).append('x');
               for (char hc : hexCode.toCharArray())
-                builder.append(ChatColor.COLOR_CHAR).append(Character.toLowerCase(hc));
+                builder.append(COLOR_CHAR).append(Character.toLowerCase(hc));
               i += 7;
               continue;
             }

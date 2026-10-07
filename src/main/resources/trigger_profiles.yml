@@ -92,25 +92,21 @@ profiles:
   #   # Click modes: ANY, ON_BLOCK, ON_ENTITY, ON_AIR
   #   click_mode: ANY
 
-  # Example armor durability trigger
-  # armor_durability:
-  #   type: ARMOR_DURABILITY
-  #   slots:
-  #     - HEAD
-  #     - CHEST
-  #     - LEGS
-  #     - FEET
-  #   xp_modifier:
-  #     default:
-  #       min: 0.5
-  #       max: 1.0
-  #   filter:
-  #     type: WHITELIST
-  #     list:
-  #       - LEATHER_HELMET
-  #       - LEATHER_CHESTPLATE
-  #       - LEATHER_LEGGINGS
-  #       - LEATHER_BOOTS
+  # Armor durability trigger - awards XP when equipped armor loses durability
+  armor_durability:
+    type: ARMOR_DURABILITY
+    slots:
+      - HELMET
+      - CHESTPLATE
+      - LEGGINGS
+      - BOOTS
+    xp_modifier:
+      default:
+        min: 0.5
+        max: 1.0
+    filter:
+      type: BLACKLIST
+      list: []
 
   # Example consume trigger
   # food_consumption:

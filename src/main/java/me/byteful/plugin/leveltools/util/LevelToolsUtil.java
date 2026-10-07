@@ -48,6 +48,9 @@ public final class LevelToolsUtil {
     private static final Pattern SERVER_MINECRAFT_VERSION_PATTERN =
             Pattern.compile("\\(MC:\\s*([^\\s)]+)\\)");
     private static final String LORE_PREFIX = "§§";
+    private static final String LEGACY_LEVEL_KEY = "levelToolsLevel";
+    private static final String LEGACY_XP_KEY = "levelToolsXp";
+    private static final String LEGACY_REWARD_KEY = "levelToolsReward";
     public static final boolean IS_PAPER = hasClass("com.destroystokyo.paper.PaperConfig") || hasClass("io.papermc.paper.configuration.Configuration");
     private static final MinecraftVersion MINECRAFT_VERSION;
     private static final boolean REQUIRES_LEGACY_ANVIL_LISTENER;
@@ -206,83 +209,32 @@ public final class LevelToolsUtil {
 
     @Nullable
     public static ItemStack getBackingItemStack(@NotNull LevelToolsItem tool) {
-        if (tool instanceof PDCLevelToolsItem) {
-            return ((PDCLevelToolsItem) tool).getStack();
-        }
-        if (tool instanceof NBTLevelToolsItem) {
-            return ((NBTLevelToolsItem) tool).getNBT().getItem();
-        }
-        return null;
+        return tool instanceof PDCLevelToolsItem
+                ? ((PDCLevelToolsItem) tool).getStack()
+                : null;
     }
 
     public static boolean rebindLevelToolsItem(@NotNull LevelToolsItem tool, @NotNull ItemStack stack) {
+        if (!(tool instanceof PDCLevelToolsItem pdcItem)) {
+            return false;
+        }
+
         final int level = tool.getLevel();
         final double xp = tool.getXp();
         final int lastHandledReward = tool.getLastHandledReward();
 
-        if (tool instanceof PDCLevelToolsItem) {
-            ((PDCLevelToolsItem) tool).setStack(stack);
-        } else if (tool instanceof NBTLevelToolsItem) {
-            ((NBTLevelToolsItem) tool).setNBT(new NBTItem(stack));
-        } else {
-            return false;
-        }
-
+        pdcItem.setStack(stack);
         tool.setLevel(level);
         tool.setXp(xp);
         tool.setLastHandledReward(lastHandledReward);
-
         return true;
     }
 
-    public static LevelToolsItem createLevelToolsItem(ItemStack stack) {
-        if (!supportsPersistentDataContainer()) {
-            return new NBTLevelToolsItem(stack);
-        }
-
-        return isNbtStorageForced() ? createNbtItem(stack) : createPdcItem(stack);
+    public static LevelToolsItem createLevelToolsItem(@NotNull ItemStack stack) {
+        return createPdcItem(stack);
     }
 
-    public static boolean isNbtStorageForced() {
-        final LevelToolsPlugin instance = LevelToolsPlugin.getInstance();
-        return instance != null && instance.getConfig().getBoolean("force_nbt", false);
-    }
-
-    private static LevelToolsItem createNbtItem(ItemStack stack) {
-        final ItemMeta meta = stack.getItemMeta();
-        if (meta == null) {
-            return new NBTLevelToolsItem(stack);
-        }
-
-        final PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        final Integer level = pdc.get(PDCLevelToolsItem.LEVEL_KEY, PersistentDataType.INTEGER);
-        final Double xp = pdc.get(PDCLevelToolsItem.XP_KEY, PersistentDataType.DOUBLE);
-        final Integer lastReward = pdc.get(PDCLevelToolsItem.LAST_REWARD_KEY, PersistentDataType.INTEGER);
-        if (level == null && xp == null && lastReward == null) {
-            return new NBTLevelToolsItem(stack);
-        }
-
-        pdc.remove(PDCLevelToolsItem.LEVEL_KEY);
-        pdc.remove(PDCLevelToolsItem.XP_KEY);
-        pdc.remove(PDCLevelToolsItem.LAST_REWARD_KEY);
-        final ItemStack migrated = stack.clone();
-        migrated.setItemMeta(meta);
-
-        final NBTLevelToolsItem item = new NBTLevelToolsItem(migrated);
-        if (level != null) {
-            item.setLevel(level);
-        }
-        if (xp != null) {
-            item.setXp(xp);
-        }
-        if (lastReward != null) {
-            item.setLastHandledReward(lastReward);
-        }
-
-        return item;
-    }
-
-    private static LevelToolsItem createPdcItem(ItemStack stack) {
+    private static LevelToolsItem createPdcItem(@NotNull ItemStack stack) {
         final ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return new PDCLevelToolsItem(stack, null);
@@ -295,32 +247,32 @@ public final class LevelToolsUtil {
             return new PDCLevelToolsItem(stack, meta);
         }
 
-        final NBTItem nbt = new NBTItem(stack);
-        final boolean hasLevel = nbt.hasTag(NBTLevelToolsItem.LEVEL_KEY);
-        final boolean hasXp = nbt.hasTag(NBTLevelToolsItem.XP_KEY);
-        final boolean hasLastReward = nbt.hasTag(NBTLevelToolsItem.LAST_REWARD_KEY);
-        if (!hasLevel && !hasXp && !hasLastReward) {
+        final LegacyLevelData legacy = NBT.get(stack, nbt -> new LegacyLevelData(
+                nbt.hasTag(LEGACY_LEVEL_KEY) ? nbt.getInteger(LEGACY_LEVEL_KEY) : null,
+                nbt.hasTag(LEGACY_XP_KEY) ? nbt.getDouble(LEGACY_XP_KEY) : null,
+                nbt.hasTag(LEGACY_REWARD_KEY) ? nbt.getInteger(LEGACY_REWARD_KEY) : null));
+
+        if (!legacy.hasAnyValue()) {
             return new PDCLevelToolsItem(stack, meta);
         }
 
-        final Integer level = hasLevel ? nbt.getInteger(NBTLevelToolsItem.LEVEL_KEY) : null;
-        final Double xp = hasXp ? nbt.getDouble(NBTLevelToolsItem.XP_KEY) : null;
-        final Integer lastReward = hasLastReward ? nbt.getInteger(NBTLevelToolsItem.LAST_REWARD_KEY) : null;
-        nbt.removeKey(NBTLevelToolsItem.LEVEL_KEY);
-        nbt.removeKey(NBTLevelToolsItem.XP_KEY);
-        nbt.removeKey(NBTLevelToolsItem.LAST_REWARD_KEY);
+        final ItemStack migrated = stack.clone();
+        NBT.modify(migrated, nbt -> {
+            nbt.removeKey(LEGACY_LEVEL_KEY);
+            nbt.removeKey(LEGACY_XP_KEY);
+            nbt.removeKey(LEGACY_REWARD_KEY);
+        });
 
-        final PDCLevelToolsItem item = new PDCLevelToolsItem(nbt.getItem());
-        if (level != null) {
-            item.setLevel(level);
+        final PDCLevelToolsItem item = new PDCLevelToolsItem(migrated);
+        if (legacy.level() != null) {
+            item.setLevel(legacy.level());
         }
-        if (xp != null) {
-            item.setXp(xp);
+        if (legacy.xp() != null) {
+            item.setXp(legacy.xp());
         }
-        if (lastReward != null) {
-            item.setLastHandledReward(lastReward);
+        if (legacy.lastReward() != null) {
+            item.setLastHandledReward(legacy.lastReward());
         }
-
         return item;
     }
 
@@ -607,6 +559,12 @@ public final class LevelToolsUtil {
             return true;
         } catch (ClassNotFoundException e) {
             return false;
+        }
+    }
+
+    private record LegacyLevelData(Integer level, Double xp, Integer lastReward) {
+        private boolean hasAnyValue() {
+            return level != null || xp != null || lastReward != null;
         }
     }
 

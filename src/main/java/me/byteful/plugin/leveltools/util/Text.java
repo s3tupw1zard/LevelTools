@@ -1,6 +1,5 @@
 package me.byteful.plugin.leveltools.util;
 
-import org.bukkit.ChatColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
@@ -10,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 public final class Text {
+  private static final char COLOR_CHAR = '\u00A7';
   private static final Set<Character> COLOR_CODES = new HashSet<>();
   static {
     for (char c : "0123456789abcdefklmnor".toCharArray()) {
@@ -19,7 +19,7 @@ public final class Text {
 
   @NotNull
   public static String decolorize(@NotNull String string) {
-    return colorize(string).replace("" + ChatColor.COLOR_CHAR, "&");
+    return colorize(string).replace(String.valueOf(COLOR_CHAR), "&");
   }
 
   @NotNull

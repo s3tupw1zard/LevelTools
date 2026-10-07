@@ -408,7 +408,7 @@ public final class LevelToolsUtil {
                         && IS_PAPER) {
                     AdventureHelper.setDisplayNameWithTranslatable(meta, text, stack);
                 } else {
-                    meta.setDisplayName(text);
+                    meta.displayName(LEGACY_SERIALIZER.deserialize(text));
                 }
             }
 
@@ -454,46 +454,43 @@ public final class LevelToolsUtil {
     }
 
     private static void smartSetLore(@NotNull ItemMeta meta, @NotNull List<String> toAdd) {
-        final List<String> lore = meta.getLore();
-        if (!meta.hasLore() || lore == null) {
-            meta.setLore(toAdd);
+        final List<Component> additions = toAdd.stream()
+                .map(LEGACY_SERIALIZER::deserialize)
+                .collect(Collectors.toCollection(ArrayList::new));
+        final List<Component> existing = meta.lore();
 
+        if (existing == null || existing.isEmpty()) {
+            meta.lore(additions);
             return;
         }
 
+        final List<Component> lore = new ArrayList<>(existing);
         final int[] bounds = findPrefixBounds(lore);
         final int start = bounds[0];
         final int end = bounds[1];
+
         if (start == -1) {
-            lore.addAll(toAdd);
-            meta.setLore(lore);
-
+            lore.addAll(additions);
+            meta.lore(lore);
             return;
         }
-        if (end >= lore.size()) {
-            meta.setLore(toAdd);
 
-            return;
-        }
-        final List<String> sub = lore.subList(start, end + 1);
-        sub.clear();
-        sub.addAll(toAdd);
-        meta.setLore(lore);
+        lore.subList(start, end + 1).clear();
+        lore.addAll(start, additions);
+        meta.lore(lore);
     }
 
-    private static int[] findPrefixBounds(@NotNull List<String> lore) {
-        final int[] arr = new int[]{-1, -1};
+    private static int[] findPrefixBounds(@NotNull List<Component> lore) {
+        final int[] bounds = new int[]{-1, -1};
         for (int i = 0; i < lore.size(); i++) {
-            if (lore.get(i).startsWith(LORE_PREFIX)) {
-                if (arr[0] == -1) {
-                    arr[0] = i;
+            if (LEGACY_SERIALIZER.serialize(lore.get(i)).startsWith(LORE_PREFIX)) {
+                if (bounds[0] == -1) {
+                    bounds[0] = i;
                 }
-
-                arr[1] = i;
+                bounds[1] = i;
             }
         }
-
-        return arr;
+        return bounds;
     }
 
     public static void handleReward(LevelToolsItem tool, Player player) {
@@ -539,11 +536,7 @@ public final class LevelToolsUtil {
     }
 
     public static void sendActionBar(Player player, String msg) {
-        if (supportsSpigotActionBar()) {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(msg));
-        } else {
-            ActionBar.sendActionBar(player, msg);
-        }
+        player.sendActionBar(LEGACY_SERIALIZER.deserialize(msg));
     }
 
     public static Scheduler createScheduler(LevelToolsPlugin plugin) {

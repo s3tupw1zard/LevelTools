@@ -4,6 +4,8 @@ import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
 import me.byteful.plugin.leveltools.util.LevelToolsUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class LevelAndXPModel {
     private final int level;
     private final double xp;
@@ -32,6 +34,11 @@ public class LevelAndXPModel {
         if (o == null || getClass() != o.getClass()) return false;
         LevelAndXPModel that = (LevelAndXPModel) o;
         return level == that.level && Double.compare(that.xp, xp) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(level, xp);
     }
 
     @Override

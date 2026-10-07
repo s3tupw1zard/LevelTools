@@ -1,10 +1,10 @@
 package me.byteful.plugin.leveltools.util;
 
-import com.cryptomorin.xseries.messages.ActionBar;
 import de.tr7zw.changeme.nbtapi.NBT;
 import me.byteful.plugin.leveltools.LevelToolsPlugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
-import me.byteful.plugin.leveltools.api.item.impl.NBTLevelToolsItem;
 import me.byteful.plugin.leveltools.api.item.impl.PDCLevelToolsItem;
 import me.byteful.plugin.leveltools.api.scheduler.Scheduler;
 import me.byteful.plugin.leveltools.api.scheduler.impl.bukkit.BukkitScheduler;
@@ -16,8 +16,6 @@ import me.byteful.plugin.leveltools.profile.display.ProgressBarConfig;
 import me.byteful.plugin.leveltools.profile.item.ItemProfile;
 import me.byteful.plugin.leveltools.profile.reward.RewardEntry;
 import me.byteful.plugin.leveltools.profile.reward.RewardProfile;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -33,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -48,6 +47,8 @@ public final class LevelToolsUtil {
     private static final Pattern SERVER_MINECRAFT_VERSION_PATTERN =
             Pattern.compile("\\(MC:\\s*([^\\s)]+)\\)");
     private static final String LORE_PREFIX = "§§";
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER =
+            LegacyComponentSerializer.legacySection();
     private static final String LEGACY_LEVEL_KEY = "levelToolsLevel";
     private static final String LEGACY_XP_KEY = "levelToolsXp";
     private static final String LEGACY_REWARD_KEY = "levelToolsReward";

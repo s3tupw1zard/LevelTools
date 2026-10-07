@@ -23,6 +23,7 @@ profiles:
       - STONE_PICKAXE
       - IRON_PICKAXE
       - GOLDEN_PICKAXE
+      - COPPER_PICKAXE
       - DIAMOND_PICKAXE
       - NETHERITE_PICKAXE
     trigger_profiles:
@@ -38,6 +39,7 @@ profiles:
       - STONE_AXE
       - IRON_AXE
       - GOLDEN_AXE
+      - COPPER_AXE
       - DIAMOND_AXE
       - NETHERITE_AXE
     trigger_profiles:
@@ -53,6 +55,7 @@ profiles:
       - STONE_SHOVEL
       - IRON_SHOVEL
       - GOLDEN_SHOVEL
+      - COPPER_SHOVEL
       - DIAMOND_SHOVEL
       - NETHERITE_SHOVEL
     trigger_profiles:
@@ -68,6 +71,7 @@ profiles:
       - STONE_SWORD
       - IRON_SWORD
       - GOLDEN_SWORD
+      - COPPER_SWORD
       - DIAMOND_SWORD
       - NETHERITE_SWORD
     trigger_profiles:
@@ -114,6 +118,71 @@ profiles:
     display_profile: default
     max_level: 100
 
+
+  # Maces
+  maces:
+    materials:
+      - MACE
+    trigger_profiles:
+      - combat
+    reward_profile: none
+    display_profile: default
+    max_level: 100
+
+  # Spears
+  spears:
+    materials:
+      - WOODEN_SPEAR
+      - STONE_SPEAR
+      - COPPER_SPEAR
+      - IRON_SPEAR
+      - GOLDEN_SPEAR
+      - DIAMOND_SPEAR
+      - NETHERITE_SPEAR
+    trigger_profiles:
+      - combat
+    reward_profile: none
+    display_profile: default
+    max_level: 100
+
+  # Wearable armor
+  armor:
+    materials:
+      - LEATHER_HELMET
+      - LEATHER_CHESTPLATE
+      - LEATHER_LEGGINGS
+      - LEATHER_BOOTS
+      - CHAINMAIL_HELMET
+      - CHAINMAIL_CHESTPLATE
+      - CHAINMAIL_LEGGINGS
+      - CHAINMAIL_BOOTS
+      - COPPER_HELMET
+      - COPPER_CHESTPLATE
+      - COPPER_LEGGINGS
+      - COPPER_BOOTS
+      - IRON_HELMET
+      - IRON_CHESTPLATE
+      - IRON_LEGGINGS
+      - IRON_BOOTS
+      - GOLDEN_HELMET
+      - GOLDEN_CHESTPLATE
+      - GOLDEN_LEGGINGS
+      - GOLDEN_BOOTS
+      - DIAMOND_HELMET
+      - DIAMOND_CHESTPLATE
+      - DIAMOND_LEGGINGS
+      - DIAMOND_BOOTS
+      - NETHERITE_HELMET
+      - NETHERITE_CHESTPLATE
+      - NETHERITE_LEGGINGS
+      - NETHERITE_BOOTS
+      - TURTLE_HELMET
+    trigger_profiles:
+      - armor_durability
+    reward_profile: none
+    display_profile: default
+    max_level: 100
+
   # Hoes
   hoes:
     materials:
@@ -121,6 +190,7 @@ profiles:
       - STONE_HOE
       - IRON_HOE
       - GOLDEN_HOE
+      - COPPER_HOE
       - DIAMOND_HOE
       - NETHERITE_HOE
     trigger_profiles:

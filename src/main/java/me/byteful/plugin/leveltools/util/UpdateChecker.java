@@ -41,7 +41,7 @@ public class UpdateChecker {
 
     public void check() {
         plugin.getLogger().info("Checking for updates...");
-        final String currentVersion = plugin.getDescription().getVersion();
+        final String currentVersion = plugin.getPluginMeta().getVersion();
 
         if (currentVersion.contains("-")) {
             plugin.getLogger().info(

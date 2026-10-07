@@ -116,7 +116,7 @@ public final class LevelToolsPlugin extends JavaPlugin {
 
         Bukkit.getPluginManager().callEvent(new LevelToolsLoadEvent(this, LevelToolsLoadEvent.LoadPhase.COMPLETE));
 
-        getLogger().info("Successfully started " + getDescription().getFullName() + "!");
+        getLogger().info("Successfully started " + getPluginMeta().getName() + " v" + getPluginMeta().getVersion() + "!");
     }
 
     @Override
@@ -129,7 +129,7 @@ public final class LevelToolsPlugin extends JavaPlugin {
 
         instance = null;
 
-        getLogger().info("Successfully stopped " + getDescription().getFullName() + ".");
+        getLogger().info("Successfully stopped " + getPluginMeta().getName() + " v" + getPluginMeta().getVersion() + ".");
     }
 
     private void sendStartupBanner() {
@@ -138,7 +138,7 @@ public final class LevelToolsPlugin extends JavaPlugin {
         Bukkit.getConsoleSender().sendMessage(colorize(" &d|          &b|     &8Extended by &2s3tupw1zard"));
         Bukkit.getConsoleSender().sendMessage(colorize(format(
                 " &d|          &b|     &8Running &6%s &8on &6MC %s",
-                getDescription().getFullName(),
+                getPluginMeta().getName() + " v" + getPluginMeta().getVersion(),
                 LevelToolsUtil.getServerVersion())));
         Bukkit.getConsoleSender().sendMessage(colorize(
                 " &d|_____     &b|     &8Project: &9&nhttps://github.com/s3tupw1zard/LevelTools"));

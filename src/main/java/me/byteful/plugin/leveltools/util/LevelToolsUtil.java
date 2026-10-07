@@ -1,7 +1,7 @@
 package me.byteful.plugin.leveltools.util;
 
 import com.cryptomorin.xseries.messages.ActionBar;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
 import me.byteful.plugin.leveltools.LevelToolsPlugin;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
 import me.byteful.plugin.leveltools.api.item.impl.NBTLevelToolsItem;
@@ -103,17 +103,11 @@ public final class LevelToolsUtil {
     }
 
     public static ItemStack getHand(Player player) {
-        return supportsDualWielding()
-                ? player.getInventory().getItemInMainHand().clone()
-                : player.getItemInHand().clone();
+        return player.getInventory().getItemInMainHand().clone();
     }
 
     public static void setHand(Player player, ItemStack stack) {
-        if (supportsDualWielding()) {
-            player.getInventory().setItemInMainHand(stack);
-        } else {
-            player.setItemInHand(stack);
-        }
+        player.getInventory().setItemInMainHand(stack);
     }
 
     public static void setItemInSlot(@NotNull Player player, @Nullable TriggerSlot slot, @NotNull ItemStack stack) {
@@ -123,11 +117,7 @@ public final class LevelToolsUtil {
         }
 
         if (slot == TriggerSlot.OFF_HAND) {
-            if (supportsDualWielding()) {
-                player.getInventory().setItemInOffHand(stack);
-            } else {
-                setHand(player, stack);
-            }
+            player.getInventory().setItemInOffHand(stack);
             return;
         }
 
@@ -156,7 +146,7 @@ public final class LevelToolsUtil {
         }
 
         if (slot == TriggerSlot.OFF_HAND) {
-            return supportsDualWielding() ? player.getInventory().getItemInOffHand() : getHand(player);
+            return player.getInventory().getItemInOffHand();
         }
 
         switch (slot) {

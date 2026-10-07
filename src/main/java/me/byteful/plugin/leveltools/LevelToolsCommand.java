@@ -202,9 +202,9 @@ public class LevelToolsCommand {
         sender.sendMessage("LevelTools Debug Information:");
         sender.sendMessage("- Server Version: " + Bukkit.getVersion());
         sender.sendMessage("- Server Type: " + Bukkit.getBukkitVersion());
-        sender.sendMessage("- Plugin Version: " + plugin.getDescription().getVersion());
+        sender.sendMessage("- Plugin Version: " + plugin.getPluginMeta().getVersion());
         sender.sendMessage("- Latest Version: " + plugin.getUpdateChecker().getLastCheckedVersion());
-        sender.sendMessage("{!} Please include your configuration with this when asking for help. Please COPY AND PASTE configuration into discord server. {!}");
+        sender.sendMessage("{!} Please include your configuration when opening an issue at https://github.com/s3tupw1zard/LevelTools/issues. {!}");
     }
 
     private boolean checkPerm(CommandSender sender) {

@@ -29,7 +29,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -183,40 +182,15 @@ public final class CombatProgressionListener implements Listener {
         }
 
         final double qualifiedDamage = qualified.stream().mapToDouble(entry -> entry.damage).sum();
+        if (qualifiedDamage <= 0.0) {
+            return;
+        }
+
         final int playerCount =
                 (int) qualified.stream().map(entry -> entry.playerId).distinct().count();
         final double pool = config.calculatePool(entity) * sharing.groupMultiplier(playerCount);
-
-        final Map<ContributionKey, Double> bonuses =
-                calculateLevelBonuses(entity, qualified, config, now);
-
-        for (Contribution entry : qualified) {
-            final Player player = Bukkit.getPlayer(entry.playerId);
-            if (player == null || !player.isOnline()) {
-                continue;
-            }
-
-            final double share = entry.damage / qualifiedDamage;
-            final ContributionKey key = new ContributionKey(entry.playerId, entry.itemId);
-            award(entry, player, pool * share * bonuses.getOrDefault(key, 1.0));
-        }
-    }
-
-    @NotNull
-    private Map<ContributionKey, Double> calculateLevelBonuses(
-            @NotNull LivingEntity entity,
-            @NotNull List<Contribution> contributionsForFight,
-            @NotNull CombatXpConfig config,
-            long now
-    ) {
-        final Map<ContributionKey, Double> result = new HashMap<>();
-        final CombatXpConfig.Rule rule =
-                config.getLevelBonus().getRule(entity.getType().name());
-        if (rule == null) {
-            return result;
-        }
-
-        final Map<UUID, List<Contribution>> byPlayer = contributionsForFight.stream()
+        final String entityType = entity.getType().name();
+        final Map<UUID, List<Contribution>> byPlayer = qualified.stream()
                 .collect(java.util.stream.Collectors.groupingBy(entry -> entry.playerId));
 
         for (Map.Entry<UUID, List<Contribution>> playerEntry : byPlayer.entrySet()) {
@@ -225,45 +199,80 @@ public final class CombatProgressionListener implements Listener {
                 continue;
             }
 
-            final NamespacedKey cooldownKey = new NamespacedKey(
-                    LevelToolsPlugin.getInstance(),
-                    "combat_bonus_" + entity.getType().name().toLowerCase(java.util.Locale.ROOT)
-            );
-            final PersistentDataContainer pdc = player.getPersistentDataContainer();
-            final Long lastClaim = pdc.get(cooldownKey, PersistentDataType.LONG);
-            if (lastClaim != null && now - lastClaim < rule.claimIntervalMillis()) {
-                continue;
-            }
+            final List<Contribution> playerContributions = List.copyOf(playerEntry.getValue());
+            LevelToolsPlugin.getInstance()
+                    .getScheduler()
+                    .entityDelayed(
+                            () -> awardPlayerContributions(
+                                    entityType,
+                                    player,
+                                    playerContributions,
+                                    qualifiedDamage,
+                                    pool,
+                                    config,
+                                    now
+                            ),
+                            player,
+                            1L
+                    );
+        }
+    }
 
-            boolean claimed = false;
-            for (Contribution contribution : playerEntry.getValue()) {
-                if (contribution.level < rule.minimumLevel()
-                        || contribution.criticalHits < rule.requiredCriticalHits()) {
-                    continue;
-                }
+    private void awardPlayerContributions(
+            @NotNull String entityType,
+            @NotNull Player player,
+            @NotNull List<Contribution> playerContributions,
+            double qualifiedDamage,
+            double pool,
+            @NotNull CombatXpConfig config,
+            long now
+    ) {
+        if (!player.isOnline()) {
+            return;
+        }
 
-                final ContributionKey key =
-                        new ContributionKey(contribution.playerId, contribution.itemId);
+        final CombatXpConfig.Rule rule = config.getLevelBonus().getRule(entityType);
+        final NamespacedKey cooldownKey = rule == null
+                ? null
+                : new NamespacedKey(
+                        LevelToolsPlugin.getInstance(),
+                        "combat_bonus_" + entityType.toLowerCase(java.util.Locale.ROOT)
+                );
+
+        boolean challengeBonusAvailable = rule != null;
+        if (challengeBonusAvailable && cooldownKey != null) {
+            final Long lastClaim = player.getPersistentDataContainer()
+                    .get(cooldownKey, PersistentDataType.LONG);
+            challengeBonusAvailable =
+                    lastClaim == null || now - lastClaim >= rule.claimIntervalMillis();
+        }
+
+        boolean claimedChallengeBonus = false;
+        for (Contribution contribution : playerContributions) {
+            final double share = contribution.damage / qualifiedDamage;
+            double multiplier = 1.0;
+
+            if (challengeBonusAvailable
+                    && contribution.level >= rule.minimumLevel()
+                    && contribution.criticalHits >= rule.requiredCriticalHits()) {
                 final double criticalDamageShare = contribution.damage <= 0.0
                         ? 0.0
                         : contribution.criticalDamage / contribution.damage;
-                result.put(
-                        key,
-                        config.getLevelBonus().multiplier(
-                                rule,
-                                contribution.progress,
-                                criticalDamageShare
-                        )
+                multiplier = config.getLevelBonus().multiplier(
+                        rule,
+                        contribution.progress,
+                        criticalDamageShare
                 );
-                claimed = true;
+                claimedChallengeBonus = true;
             }
 
-            if (claimed) {
-                pdc.set(cooldownKey, PersistentDataType.LONG, now);
-            }
+            award(contribution, player, pool * share * multiplier);
         }
 
-        return result;
+        if (claimedChallengeBonus && cooldownKey != null) {
+            player.getPersistentDataContainer()
+                    .set(cooldownKey, PersistentDataType.LONG, now);
+        }
     }
 
     private void award(@NotNull Contribution contribution, @NotNull Player player, double xp) {
@@ -319,14 +328,6 @@ public final class CombatProgressionListener implements Listener {
             return new ResolvedWeapon(
                     item,
                     updated -> player.getInventory().setItem(targetSlot, updated)
-            );
-        }
-
-        final ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand.getType() == contribution.material) {
-            return new ResolvedWeapon(
-                    hand,
-                    updated -> player.getInventory().setItemInMainHand(updated)
             );
         }
 

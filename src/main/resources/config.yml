@@ -1,7 +1,9 @@
 #
-# LevelTools by byteful
+# LevelTools - based on the original plugin by byteful
+# Maintained and extended by s3tupw1zard
 #
-# Wiki: https://github.com/byteful/LevelTools/wiki/Configuration
+# Project: https://github.com/s3tupw1zard/LevelTools
+# Upstream documentation: https://github.com/byteful/LevelTools/wiki/Configuration
 #
 
 # Useful Links:
@@ -30,10 +32,6 @@ block_data_storage:
   #                  scalability with large datasets, and data integrity.
   #
   type: SQLITE
-
-# Should LevelTools force the legacy NBT storage method for item level/XP data, even on 1.14+ servers where PDC (PersistentDataContainer) is normally used?
-# Tool data is automatically migrated to the active storage method: PDC data migrates to NBT when this is enabled, and NBT data migrates back to PDC when disabled.
-force_nbt: false
 
 # Configuration for messages.
 messages:

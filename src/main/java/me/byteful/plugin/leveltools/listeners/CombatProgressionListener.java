@@ -29,6 +29,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,7 +40,7 @@ import java.util.function.Consumer;
 public final class CombatProgressionListener implements Listener {
     private final ProfileManager profileManager;
     private final XPHandler xpHandler;
-    private final Map<EntityDamageByEntityEvent, HitContext> pendingHits =
+    private final Map<EntityDamageByEntityEvent, List<HitContext>> pendingHits =
             new ConcurrentHashMap<>();
     private final Map<UUID, MobContribution> contributions = new ConcurrentHashMap<>();
 
@@ -95,25 +96,61 @@ public final class CombatProgressionListener implements Listener {
                 : 0.0;
         event.setDamage(Math.max(0.0, normalDamage + criticalBonus));
 
-        final ProgressionProfile progression = profileManager.getProgressionProfileFor(itemProfile);
-        pendingHits.put(
-                event,
-                new HitContext(
-                        source.player().getUniqueId(),
-                        prepared.itemId(),
-                        prepared.item().getType(),
-                        prepared.projectileId(),
-                        tool.getLevel(),
-                        progression == null ? 0.0 : progression.normalizedProgress(tool.getLevel()),
-                        levelToolsCritical
-                )
-        );
+        final ProgressionProfile progression =
+                profileManager.getProgressionProfileFor(itemProfile);
+        final List<HitContext> hitContexts = new ArrayList<>();
+        hitContexts.add(new HitContext(
+                source.player().getUniqueId(),
+                prepared.itemId(),
+                prepared.item().getType(),
+                prepared.projectileId(),
+                tool.getLevel(),
+                progression == null ? 0.0 : progression.normalizedProgress(tool.getLevel()),
+                levelToolsCritical,
+                1.0
+        ));
+
+        final CombatXpConfig config = LevelToolsPlugin.getInstance().getCombatXpConfig();
+        if (config.getSharing().dualWieldSplit() && isDirectMeleeAttack(source)) {
+            final PreparedWeapon offHand =
+                    prepareInventoryWeapon(
+                            source.player(),
+                            source.player().getInventory().getItemInOffHand(),
+                            true
+                    );
+            if (offHand != null && !offHand.itemId().equals(prepared.itemId())) {
+                final ItemProfile offHandProfile =
+                        profileManager.getProfileForMaterial(offHand.item().getType());
+                if (offHandProfile != null && isCombatTargetAllowed(offHandProfile, target)) {
+                    final LevelToolsItem offHandTool =
+                            LevelToolsUtil.createLevelToolsItem(offHand.item());
+                    final ProgressionProfile offHandProgression =
+                            profileManager.getProgressionProfileFor(offHandProfile);
+
+                    hitContexts.set(0, hitContexts.getFirst().withContributionWeight(0.5));
+                    hitContexts.add(new HitContext(
+                            source.player().getUniqueId(),
+                            offHand.itemId(),
+                            offHand.item().getType(),
+                            null,
+                            offHandTool.getLevel(),
+                            offHandProgression == null
+                                    ? 0.0
+                                    : offHandProgression.normalizedProgress(offHandTool.getLevel()),
+                            levelToolsCritical,
+                            0.5
+                    ));
+                }
+            }
+        }
+
+        pendingHits.put(event, List.copyOf(hitContexts));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onContribution(@NotNull EntityDamageByEntityEvent event) {
-        final HitContext hit = pendingHits.remove(event);
-        if (hit == null || event.isCancelled()
+        final List<HitContext> hits = pendingHits.remove(event);
+        if (hits == null || hits.isEmpty() || event.isCancelled()
                 || !(event.getEntity() instanceof LivingEntity target)) {
             return;
         }
@@ -127,9 +164,19 @@ public final class CombatProgressionListener implements Listener {
             return;
         }
 
-        contributions
-                .computeIfAbsent(target.getUniqueId(), ignored -> new MobContribution())
-                .add(hit, effectiveDamage, System.currentTimeMillis());
+        final MobContribution mobContribution =
+                contributions.computeIfAbsent(
+                        target.getUniqueId(),
+                        ignored -> new MobContribution()
+                );
+        final long now = System.currentTimeMillis();
+        for (HitContext hit : hits) {
+            mobContribution.add(
+                    hit,
+                    effectiveDamage * hit.contributionWeight(),
+                    now
+            );
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -382,6 +429,45 @@ public final class CombatProgressionListener implements Listener {
         );
     }
 
+    @Nullable
+    private PreparedWeapon prepareInventoryWeapon(
+            @NotNull Player player,
+            @NotNull ItemStack weapon,
+            boolean offHand
+    ) {
+        if (weapon.getType() == Material.AIR
+                || profileManager.getProfileForMaterial(weapon.getType()) == null) {
+            return null;
+        }
+
+        String itemId = LevelToolsUtil.getStoredItemId(weapon);
+        ItemStack prepared = weapon;
+
+        if (itemId == null) {
+            final ItemProfile itemProfile =
+                    profileManager.getProfileForMaterial(weapon.getType());
+            final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(weapon);
+            prepared = LevelToolsUtil.getItemStack(tool, player, itemProfile);
+            itemId = LevelToolsUtil.getStoredItemId(prepared);
+            if (itemId == null) {
+                return null;
+            }
+
+            if (offHand) {
+                player.getInventory().setItemInOffHand(prepared);
+            } else {
+                player.getInventory().setItemInMainHand(prepared);
+            }
+        }
+
+        return new PreparedWeapon(prepared, itemId, null);
+    }
+
+    private boolean isDirectMeleeAttack(@NotNull AttackSource source) {
+        return !(source.directEntity() instanceof AbstractArrow)
+                && !(source.directEntity() instanceof Trident);
+    }
+
     private void updateMatchingInventoryWeapon(
             @NotNull Player player,
             @NotNull ItemStack original,
@@ -482,8 +568,22 @@ public final class CombatProgressionListener implements Listener {
             @Nullable UUID projectileId,
             int level,
             double progress,
-            boolean critical
+            boolean critical,
+            double contributionWeight
     ) {
+        @NotNull
+        private HitContext withContributionWeight(double weight) {
+            return new HitContext(
+                    playerId,
+                    itemId,
+                    material,
+                    projectileId,
+                    level,
+                    progress,
+                    critical,
+                    weight
+            );
+        }
     }
 
     private record ContributionKey(UUID playerId, String itemId) {

@@ -140,9 +140,11 @@ public final class ConfigUpdater {
         final Path itemPath = dataFolder.resolve("item_profiles.yml");
         final Path progressionPath = dataFolder.resolve("progression_profiles.yml");
         final Path displayPath = dataFolder.resolve("display_profiles.yml");
+        final Path xpSourcesPath = dataFolder.resolve("xp_sources.yml");
         if (!Files.exists(itemPath)
                 || !Files.exists(progressionPath)
-                || !Files.exists(displayPath)) {
+                || !Files.exists(displayPath)
+                || !Files.exists(xpSourcesPath)) {
             return;
         }
 
@@ -152,6 +154,8 @@ public final class ConfigUpdater {
                 YamlConfiguration.loadConfiguration(progressionPath.toFile());
         final YamlConfiguration displayConfig =
                 YamlConfiguration.loadConfiguration(displayPath.toFile());
+        final YamlConfiguration xpSourcesConfig =
+                YamlConfiguration.loadConfiguration(xpSourcesPath.toFile());
         final var profiles = itemConfig.getConfigurationSection("profiles");
         if (profiles == null) {
             return;
@@ -160,6 +164,11 @@ public final class ConfigUpdater {
         boolean itemChanged = false;
         boolean progressionChanged = false;
         boolean displayChanged = ensureFormulaDisplayProfiles(displayConfig);
+        boolean xpSourcesChanged = false;
+        if (!xpSourcesConfig.contains("combat.sharing.dual_wield_xp_penalty")) {
+            xpSourcesConfig.set("combat.sharing.dual_wield_xp_penalty", 0.30);
+            xpSourcesChanged = true;
+        }
 
         for (String profileId : profiles.getKeys(false)) {
             final var profile = profiles.getConfigurationSection(profileId);
@@ -240,6 +249,11 @@ public final class ConfigUpdater {
         if (displayChanged) {
             backupFile(displayPath, "display_profiles-2026.1-backup-");
             save(displayConfig, displayPath, "display_profiles.yml");
+        }
+
+        if (xpSourcesChanged) {
+            backupFile(xpSourcesPath, "xp_sources-2026.1-backup-");
+            save(xpSourcesConfig, xpSourcesPath, "xp_sources.yml");
         }
     }
 

@@ -107,6 +107,7 @@ public final class CombatProgressionListener implements Listener {
                 tool.getLevel(),
                 progression == null ? 0.0 : progression.normalizedProgress(tool.getLevel()),
                 levelToolsCritical,
+                1.0,
                 1.0
         ));
 
@@ -127,7 +128,15 @@ public final class CombatProgressionListener implements Listener {
                     final ProgressionProfile offHandProgression =
                             profileManager.getProgressionProfileFor(offHandProfile);
 
-                    hitContexts.set(0, hitContexts.getFirst().withContributionWeight(0.5));
+                    final double dualWieldXpMultiplier =
+                            1.0 - config.getSharing().dualWieldXpPenalty();
+                    hitContexts.set(
+                            0,
+                            hitContexts.getFirst().withContribution(
+                                    0.5,
+                                    dualWieldXpMultiplier
+                            )
+                    );
                     hitContexts.add(new HitContext(
                             source.player().getUniqueId(),
                             offHand.itemId(),
@@ -138,7 +147,8 @@ public final class CombatProgressionListener implements Listener {
                                     ? 0.0
                                     : offHandProgression.normalizedProgress(offHandTool.getLevel()),
                             levelToolsCritical,
-                            0.5
+                            0.5,
+                            dualWieldXpMultiplier
                     ));
                 }
             }
@@ -319,8 +329,13 @@ public final class CombatProgressionListener implements Listener {
                 );
             }
 
+            final double xpMultiplier = contribution.effectiveXpMultiplier();
             final boolean awarded =
-                    award(contribution, player, pool * share * multiplier);
+                    award(
+                            contribution,
+                            player,
+                            pool * share * multiplier * xpMultiplier
+                    );
             if (awarded && multiplier > 1.0) {
                 claimedChallengeBonus = true;
             }
@@ -592,10 +607,11 @@ public final class CombatProgressionListener implements Listener {
             int level,
             double progress,
             boolean critical,
-            double contributionWeight
+            double contributionWeight,
+            double xpMultiplier
     ) {
         @NotNull
-        private HitContext withContributionWeight(double weight) {
+        private HitContext withContribution(double weight, double multiplier) {
             return new HitContext(
                     playerId,
                     itemId,
@@ -604,7 +620,8 @@ public final class CombatProgressionListener implements Listener {
                     level,
                     progress,
                     critical,
-                    weight
+                    weight,
+                    multiplier
             );
         }
     }
@@ -620,6 +637,7 @@ public final class CombatProgressionListener implements Listener {
         private int level;
         private double progress;
         private double damage;
+        private double xpWeightedDamage;
         private double criticalDamage;
         private int criticalHits;
         private long lastHitMillis;
@@ -635,6 +653,7 @@ public final class CombatProgressionListener implements Listener {
 
         private void add(@NotNull HitContext hit, double amount, long now) {
             damage += amount;
+            xpWeightedDamage += amount * hit.xpMultiplier();
             lastHitMillis = now;
             material = hit.material();
             projectileId = hit.projectileId();
@@ -644,6 +663,10 @@ public final class CombatProgressionListener implements Listener {
                 criticalHits++;
                 criticalDamage += amount;
             }
+        }
+
+        private double effectiveXpMultiplier() {
+            return damage <= 0.0 ? 1.0 : xpWeightedDamage / damage;
         }
     }
 

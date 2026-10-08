@@ -523,17 +523,35 @@ public final class LevelToolsUtil {
 
     public static boolean applyRewards(
             @NotNull LevelToolsItem tool, @NotNull Player player, @NotNull RewardProfile rewardProfile) {
-        int level = tool.getLevel();
-        if (!rewardProfile.hasRewardsForLevel(level) || tool.getLastHandledReward() == level) {
+        final int currentLevel = tool.getLevel();
+        final int lastHandledReward = tool.getLastHandledReward();
+        if (currentLevel <= lastHandledReward) {
             return false;
         }
 
-        tool.setLastHandledReward(level);
-        for (RewardEntry entry : rewardProfile.getRewardsForLevel(level)) {
-            entry.apply(tool, player);
+        boolean applied = false;
+        int highestHandledReward = lastHandledReward;
+
+        final List<Integer> pendingRewardLevels = rewardProfile.getLevelRewards().keySet().stream()
+                .filter(rewardLevel ->
+                        rewardLevel > lastHandledReward && rewardLevel <= currentLevel)
+                .sorted()
+                .collect(Collectors.toList());
+
+        for (int rewardLevel : pendingRewardLevels) {
+            for (RewardEntry entry : rewardProfile.getRewardsForLevel(rewardLevel)) {
+                entry.apply(tool, player);
+            }
+
+            highestHandledReward = rewardLevel;
+            applied = true;
         }
 
-        return true;
+        if (applied) {
+            tool.setLastHandledReward(highestHandledReward);
+        }
+
+        return applied;
     }
 
     public static void sendActionBar(Player player, String msg) {

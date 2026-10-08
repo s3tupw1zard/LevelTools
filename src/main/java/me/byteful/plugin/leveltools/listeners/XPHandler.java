@@ -20,6 +20,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Consumer;
+
 import static me.byteful.plugin.leveltools.util.Text.formatMoney;
 
 public final class XPHandler {
@@ -62,6 +64,36 @@ public final class XPHandler {
             updateItem(player, slot, tool.getItemStack(maxXp));
         }
 
+        showActionBar(tool, player, itemProfile, maxXp);
+    }
+
+    public void handleDirectCommit(
+            @NotNull Player player,
+            @NotNull ItemProfile itemProfile,
+            @NotNull LevelToolsItem tool,
+            double modifier,
+            @NotNull Consumer<ItemStack> committer
+    ) {
+        modifier = Math.max(0, XPBooster.apply(player, modifier));
+        double newXp = LevelToolsUtil.round(tool.getXp() + modifier, 1);
+
+        LevelToolsXPIncreaseEvent xpEvent =
+                new LevelToolsXPIncreaseEvent(tool, player, newXp, newXp, false);
+        Bukkit.getPluginManager().callEvent(xpEvent);
+
+        if (xpEvent.isCancelled()) {
+            return;
+        }
+
+        tool.setXp(xpEvent.getNewXp());
+
+        double maxXp = getMaxXp(player, itemProfile, tool);
+        if (tool.getXp() >= maxXp && handleLevelUp(tool, player, itemProfile, maxXp)) {
+            maxXp = getMaxXp(player, itemProfile, tool);
+        }
+
+        handleReward(tool, player, itemProfile);
+        committer.accept(tool.getItemStack(maxXp));
         showActionBar(tool, player, itemProfile, maxXp);
     }
 

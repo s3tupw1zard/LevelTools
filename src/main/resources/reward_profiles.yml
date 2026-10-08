@@ -19,6 +19,12 @@
 #
 
 profiles:
+  # Level-only profile for item groups that do not yet have curated rewards.
+  # Progression rewards for these groups can be added later without changing
+  # their XP/level storage format.
+  none:
+    levels: {}
+
   # Tool rewards - for pickaxes, axes, shovels
   tools:
     levels:

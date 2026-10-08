@@ -69,10 +69,15 @@ public class LevelToolsPlaceholders extends PlaceholderExpansion {
             case "progress_bar": {
                 LevelToolsItem item = LevelToolsUtil.createLevelToolsItem(hand);
                 ItemProfile itemProfile = LevelToolsUtil.getItemProfile(hand.getType());
+                if (item.getLevel() >= LevelToolsUtil.getMaxLevel(itemProfile)) {
+                    return "";
+                }
                 double maxXp = LevelToolsUtil.getMaxXp(player, itemProfile, item);
-                final double displayXp =
-                        item.getLevel() >= LevelToolsUtil.getMaxLevel(itemProfile) ? maxXp : item.getXp();
-                return LevelToolsUtil.createProgressBar(displayXp, maxXp, getDisplayProfile(itemProfile));
+                return LevelToolsUtil.createProgressBar(
+                        item.getXp(),
+                        maxXp,
+                        getDisplayProfile(itemProfile)
+                );
             }
 
             case "progress": {

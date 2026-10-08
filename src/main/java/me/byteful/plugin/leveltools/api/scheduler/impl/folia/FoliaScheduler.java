@@ -5,6 +5,7 @@ import me.byteful.plugin.leveltools.api.scheduler.ScheduledTask;
 import me.byteful.plugin.leveltools.api.scheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +29,11 @@ public class FoliaScheduler implements Scheduler {
     @Override
     public void locationDelayed(Runnable runnable, Location location, long ticksDelay) {
         Bukkit.getRegionScheduler().runDelayed(plugin, location, x -> runnable.run(), ticksDelay);
+    }
+
+    @Override
+    public void entityDelayed(Runnable runnable, Entity entity, long ticksDelay) {
+        entity.getScheduler().runDelayed(plugin, task -> runnable.run(), null, Math.max(1L, ticksDelay));
     }
 
     @Override

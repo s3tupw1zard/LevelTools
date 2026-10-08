@@ -263,10 +263,13 @@ public final class CombatProgressionListener implements Listener {
                         contribution.progress,
                         criticalDamageShare
                 );
-                claimedChallengeBonus = true;
             }
 
-            award(contribution, player, pool * share * multiplier);
+            final boolean awarded =
+                    award(contribution, player, pool * share * multiplier);
+            if (awarded && multiplier > 1.0) {
+                claimedChallengeBonus = true;
+            }
         }
 
         if (claimedChallengeBonus && cooldownKey != null) {
@@ -275,19 +278,24 @@ public final class CombatProgressionListener implements Listener {
         }
     }
 
-    private void award(@NotNull Contribution contribution, @NotNull Player player, double xp) {
+    private boolean award(
+            @NotNull Contribution contribution,
+            @NotNull Player player,
+            double xp
+    ) {
         if (xp <= 0.0) {
-            return;
+            return false;
         }
 
         final ResolvedWeapon resolved = resolveWeapon(player, contribution);
         if (resolved == null) {
-            return;
+            return false;
         }
 
-        final ItemProfile itemProfile = profileManager.getProfileForMaterial(resolved.item().getType());
+        final ItemProfile itemProfile =
+                profileManager.getProfileForMaterial(resolved.item().getType());
         if (itemProfile == null) {
-            return;
+            return false;
         }
 
         xpHandler.handleDirectCommit(
@@ -297,6 +305,7 @@ public final class CombatProgressionListener implements Listener {
                 xp,
                 resolved.committer()
         );
+        return true;
     }
 
     @Nullable

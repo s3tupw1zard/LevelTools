@@ -60,7 +60,7 @@ public final class XPHandler {
             updateItem(player, slot, tool.getItemStack(maxXp));
         }
 
-        showActionBar(tool, player, itemProfile, maxXp);
+        showActionBar(tool, player, itemProfile, maxXp, slot);
     }
 
     public void handleDirectCommit(
@@ -86,7 +86,7 @@ public final class XPHandler {
         double maxXp = advanceLevels(tool, player, itemProfile);
         handleReward(tool, player, itemProfile);
         committer.accept(tool.getItemStack(maxXp));
-        showActionBar(tool, player, itemProfile, maxXp);
+        showActionBar(tool, player, itemProfile, maxXp, null);
     }
 
     private void commitDeferred(
@@ -186,7 +186,8 @@ public final class XPHandler {
             @NotNull LevelToolsItem tool,
             @NotNull Player player,
             @NotNull ItemProfile itemProfile,
-            double maxXp
+            double maxXp,
+            @Nullable TriggerSlot slot
     ) {
         DisplayProfile displayProfile = profileManager.getDisplayProfileFor(itemProfile);
         if (displayProfile == null) {
@@ -199,13 +200,19 @@ public final class XPHandler {
         }
 
         final int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
-        final double displayXp = tool.getLevel() >= maxLevel ? maxXp : tool.getXp();
+        if (tool.getLevel() >= maxLevel) {
+            return;
+        }
+
+        final double displayXp = tool.getXp();
         String progressBar = displayProfile.getProgressBar().buildProgressBar(displayXp, maxXp);
         String text = Text.colorize(actionBar.getText()
                 .replace("{progress_bar}", progressBar)
                 .replace("{xp}", String.valueOf(displayXp))
                 .replace("{max_xp}", String.valueOf(maxXp))
                 .replace("{level}", String.valueOf(tool.getLevel()))
+                .replace("{slot}", LevelToolsUtil.getReadableSlotName(slot))
+                .replace("{item}", LevelToolsUtil.getReadableItemName(tool.getItemStack()))
                 .replace("{max_xp_formatted}", formatMoney(maxXp))
                 .replace("{xp_formatted}", formatMoney(displayXp)));
 

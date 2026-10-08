@@ -170,13 +170,25 @@ public final class ItemProfileLoader {
         Set<Material> materials = new HashSet<>();
 
         for (String name : materialNames) {
-            try {
-                Optional<XMaterial> material = XMaterial.matchXMaterial(name.toUpperCase());
+            final String normalized = name.trim().toUpperCase(Locale.ROOT);
+            Material material = Material.matchMaterial(normalized);
 
-                materials.add(Objects.requireNonNull(material.get().get()));
-            } catch (IllegalArgumentException | NoSuchElementException | NullPointerException e) {
-                logger.warning("Unknown material: " + name);
+            if (material == null) {
+                try {
+                    material = XMaterial.matchXMaterial(normalized)
+                            .map(XMaterial::get)
+                            .orElse(null);
+                } catch (IllegalArgumentException ignored) {
+                    material = null;
+                }
             }
+
+            if (material == null) {
+                logger.warning("Unknown material: " + name);
+                continue;
+            }
+
+            materials.add(material);
         }
 
         return materials;

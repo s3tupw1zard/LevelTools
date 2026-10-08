@@ -5,6 +5,10 @@ import me.byteful.plugin.leveltools.api.AnvilCombineMode;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
 import me.byteful.plugin.leveltools.model.LevelAndXPModel;
 import me.byteful.plugin.leveltools.util.LevelToolsUtil;
+import com.google.common.collect.Multimap;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -12,9 +16,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import static me.byteful.plugin.leveltools.listeners.anvil.AnvilHelper.getResultItem;
 import static me.byteful.plugin.leveltools.listeners.anvil.AnvilHelper.shouldBlockEnchantedBookResult;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Map;
+import java.util.UUID;
 
 public class LegacyAnvilListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -44,6 +54,55 @@ public class LegacyAnvilListener implements Listener {
         inv.setItem(2, createUpdatedResult(firstItem, secondItem, result, e.getWhoClicked()));
     }
 
+    private static ItemStack preserveBaseProgression(ItemStack baseItem, ItemStack vanillaResult) {
+        final ItemStack protectedResult = vanillaResult.clone();
+
+        for (Map.Entry<Enchantment, Integer> entry : baseItem.getEnchantments().entrySet()) {
+            if (protectedResult.getEnchantmentLevel(entry.getKey()) < entry.getValue()) {
+                protectedResult.addUnsafeEnchantment(entry.getKey(), entry.getValue());
+            }
+        }
+
+        final ItemMeta sourceMeta = baseItem.getItemMeta();
+        final ItemMeta targetMeta = protectedResult.getItemMeta();
+        if (sourceMeta == null || targetMeta == null) {
+            return protectedResult;
+        }
+
+        final Multimap<Attribute, AttributeModifier> sourceModifiers = sourceMeta.getAttributeModifiers();
+        if (sourceModifiers == null || sourceModifiers.isEmpty()) {
+            return protectedResult;
+        }
+
+        for (Map.Entry<Attribute, AttributeModifier> entry : sourceModifiers.entries()) {
+            final AttributeModifier sourceModifier = entry.getValue();
+            if (!isLevelToolsAttributeModifier(sourceModifier)) {
+                continue;
+            }
+
+            final Collection<AttributeModifier> targetModifiers =
+                    targetMeta.getAttributeModifiers(entry.getKey());
+            if (targetModifiers != null) {
+                for (AttributeModifier targetModifier : targetModifiers) {
+                    if (sourceModifier.getUniqueId().equals(targetModifier.getUniqueId())) {
+                        targetMeta.removeAttributeModifier(entry.getKey(), targetModifier);
+                    }
+                }
+            }
+
+            targetMeta.addAttributeModifier(entry.getKey(), sourceModifier);
+        }
+
+        protectedResult.setItemMeta(targetMeta);
+        return protectedResult;
+    }
+
+    private static boolean isLevelToolsAttributeModifier(AttributeModifier modifier) {
+        final UUID expected = UUID.nameUUIDFromBytes(
+                modifier.getName().getBytes(StandardCharsets.UTF_8));
+        return expected.equals(modifier.getUniqueId());
+    }
+
     static boolean isHandledAnvilAction(ItemStack firstItem, ItemStack secondItem, ItemStack result) {
         return result != null
                 && LevelToolsUtil.isSupportedTool(result.getType())
@@ -54,7 +113,8 @@ public class LegacyAnvilListener implements Listener {
 
     static ItemStack createUpdatedResult(
             ItemStack firstItem, ItemStack secondItem, ItemStack result, HumanEntity viewer) {
-        final LevelToolsItem finalItem = LevelToolsUtil.createLevelToolsItem(result);
+        final ItemStack protectedResult = preserveBaseProgression(firstItem, result);
+        final LevelToolsItem finalItem = LevelToolsUtil.createLevelToolsItem(protectedResult);
 
         if (LevelToolsUtil.isSupportedTool(secondItem.getType())) {
             final AnvilCombineMode mode = LevelToolsPlugin.getInstance().getAnvilCombineMode();

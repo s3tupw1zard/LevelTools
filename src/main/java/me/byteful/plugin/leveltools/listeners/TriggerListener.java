@@ -13,6 +13,7 @@ import me.byteful.plugin.leveltools.util.LevelToolsUtil;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Trident;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -30,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class TriggerListener implements Listener {
     private final ProfileManager profileManager;
@@ -69,15 +71,33 @@ public final class TriggerListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         Player killer = event.getEntity().getKiller();
-        if (killer == null) {
+        if (killer == null || !killer.hasPermission("leveltools.enabled")) {
             return;
         }
 
-        if (!killer.hasPermission("leveltools.enabled")) {
+        Entity directEntity = event.getDamageSource().getDirectEntity();
+        if (directEntity instanceof Trident trident) {
+            ItemStack thrownItem = trident.getItemStack();
+            handleTrigger(
+                    killer,
+                    thrownItem,
+                    null,
+                    event.getEntity(),
+                    event,
+                    trident::setItemStack,
+                    TriggerIds.ENTITY_KILL
+            );
             return;
         }
 
-        handleTrigger(killer, killer.getItemInHand(), TriggerSlot.HAND, event.getEntity(), event, TriggerIds.ENTITY_KILL);
+        handleTrigger(
+                killer,
+                killer.getItemInHand(),
+                TriggerSlot.HAND,
+                event.getEntity(),
+                event,
+                TriggerIds.ENTITY_KILL
+        );
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -181,6 +201,18 @@ public final class TriggerListener implements Listener {
             @NotNull Event event,
             @NotNull String... triggerIds
     ) {
+        handleTrigger(player, item, slot, source, event, null, triggerIds);
+    }
+
+    private void handleTrigger(
+            @NotNull Player player,
+            @NotNull ItemStack item,
+            @Nullable TriggerSlot slot,
+            @Nullable Object source,
+            @NotNull Event event,
+            @Nullable Consumer<ItemStack> committer,
+            @NotNull String... triggerIds
+    ) {
         if (item.getType() == Material.AIR) {
             return;
         }
@@ -239,7 +271,18 @@ public final class TriggerListener implements Listener {
         }
 
         LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
-        xpHandler.handle(player, itemProfile, slot, tool, totalModifier, event instanceof PlayerItemDamageEvent);
+        if (committer != null) {
+            xpHandler.handleDirectCommit(player, itemProfile, tool, totalModifier, committer);
+        } else {
+            xpHandler.handle(
+                    player,
+                    itemProfile,
+                    slot,
+                    tool,
+                    totalModifier,
+                    event instanceof PlayerItemDamageEvent
+            );
+        }
     }
 
     private boolean isApplicableTrigger(@NotNull String triggerId, @NotNull String[] triggerIds) {

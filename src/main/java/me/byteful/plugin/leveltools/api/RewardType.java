@@ -2,8 +2,6 @@ package me.byteful.plugin.leveltools.api;
 
 import com.cryptomorin.xseries.XEnchantment;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -56,13 +54,12 @@ public enum RewardType {
         @Override
         public void apply(
                 @NotNull LevelToolsItem tool, @NotNull String[] split, @NotNull Player player) {
-            if (split.length < 3) {
+            if (split.length < 3 || !isInteger(split[2])) {
                 return;
             }
 
             final Optional<XEnchantment> enchant = XEnchantment.matchXEnchantment(split[1]);
-
-            if (enchant.isPresent() && NumberUtils.isNumber(split[2])) {
+            if (enchant.isPresent()) {
                 tool.enchant(enchant.get().getEnchant(), Integer.parseInt(split[2]));
             }
         }
@@ -71,21 +68,18 @@ public enum RewardType {
         @Override
         public void apply(
                 @NotNull LevelToolsItem tool, @NotNull String[] split, @NotNull Player player) {
-            if (split.length < 3) {
+            if (split.length < 3 || !isInteger(split[2])) {
                 return;
             }
 
             final Optional<XEnchantment> enchant = XEnchantment.matchXEnchantment(split[1]);
+            final int level = Integer.parseInt(split[2]);
 
-            if (NumberUtils.isNumber(split[2])) {
-                final int level = Integer.parseInt(split[2]);
-
-                if (enchant.isPresent()
-                        && tool.getItemStack()
-                        .getEnchantmentLevel(Objects.requireNonNull(enchant.get().getEnchant()))
-                        < level) {
-                    tool.enchant(enchant.get().getEnchant(), level);
-                }
+            if (enchant.isPresent()
+                    && tool.getItemStack()
+                    .getEnchantmentLevel(Objects.requireNonNull(enchant.get().getEnchant()))
+                    < level) {
+                tool.enchant(enchant.get().getEnchant(), level);
             }
         }
     },
@@ -93,21 +87,18 @@ public enum RewardType {
         @Override
         public void apply(
                 @NotNull LevelToolsItem tool, @NotNull String[] split, @NotNull Player player) {
-            if (split.length < 3) {
+            if (split.length < 3 || !isInteger(split[2])) {
                 return;
             }
 
             final Optional<XEnchantment> enchant = XEnchantment.matchXEnchantment(split[1]);
+            final int level = Integer.parseInt(split[2]);
 
-            if (NumberUtils.isNumber(split[2])) {
-                final int level = Integer.parseInt(split[2]);
-
-                if (enchant.isPresent()) {
-                    final int currentLvl =
-                            tool.getItemStack()
-                                    .getEnchantmentLevel(Objects.requireNonNull(enchant.get().getEnchant()));
-                    tool.enchant(enchant.get().getEnchant(), currentLvl + level);
-                }
+            if (enchant.isPresent()) {
+                final int currentLvl =
+                        tool.getItemStack()
+                                .getEnchantmentLevel(Objects.requireNonNull(enchant.get().getEnchant()));
+                tool.enchant(enchant.get().getEnchant(), currentLvl + level);
             }
         }
     },
@@ -115,21 +106,18 @@ public enum RewardType {
         @Override
         public void apply(
                 @NotNull LevelToolsItem tool, @NotNull String[] split, @NotNull Player player) {
-            if (split.length < 3) {
+            if (split.length < 3 || !isDouble(split[2])) {
                 return;
             }
 
             String attribute = split[1];
+            final double modifier = Double.parseDouble(split[2]);
 
-            if (NumberUtils.isNumber(split[2])) {
-                final double modifier = Double.parseDouble(split[2]);
-
-                if (StringUtils.countMatches(attribute, "_") >= 2) {
-                    attribute = attribute.toLowerCase(Locale.ROOT).replaceFirst("_+", ".").trim();
-                }
-
-                tool.modifyAttribute(attribute, modifier);
+            if (attribute.indexOf('_') != attribute.lastIndexOf('_')) {
+                attribute = attribute.toLowerCase(Locale.ROOT).replaceFirst("_+", ".").trim();
             }
+
+            tool.modifyAttribute(attribute, modifier);
         }
     };
 
@@ -156,6 +144,24 @@ public enum RewardType {
         }
 
         return Optional.empty();
+    }
+
+    private static boolean isInteger(@NotNull String value) {
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+    }
+
+    private static boolean isDouble(@NotNull String value) {
+        try {
+            Double.parseDouble(value);
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     public abstract void apply(

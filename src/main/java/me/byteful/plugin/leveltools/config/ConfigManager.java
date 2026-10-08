@@ -75,6 +75,7 @@ public final class ConfigManager {
         itemProfilesConfig = loadOrCreate("item_profiles.yml");
         progressionProfilesConfig = loadOrCreate("progression_profiles.yml");
         displayProfilesConfig = loadOrCreate("display_profiles.yml");
+        xpSourcesConfig = loadOrCreate("xp_sources.yml");
 
         settings = Settings.from(mainConfig, logger);
 

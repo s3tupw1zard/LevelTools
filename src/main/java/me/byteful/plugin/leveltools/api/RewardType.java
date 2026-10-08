@@ -1,14 +1,17 @@
 package me.byteful.plugin.leveltools.api;
 
-import com.cryptomorin.xseries.XEnchantment;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 
 public enum RewardType {
@@ -27,9 +30,8 @@ public enum RewardType {
         @Override
         public void apply(
                 @NotNull LevelToolsItem tool, @NotNull String[] split, @NotNull Player player) {
-            player.chat(
-                    "/"
-                            + String.join(" ", Arrays.copyOfRange(split, 1, split.length))
+            player.performCommand(
+                    String.join(" ", Arrays.copyOfRange(split, 1, split.length))
                             .replace("{player}", player.getName())
                             .replace("%player%", player.getName()));
         }
@@ -38,15 +40,15 @@ public enum RewardType {
         @Override
         public void apply(
                 @NotNull LevelToolsItem tool, @NotNull String[] split, @NotNull Player player) {
-            final boolean isOP = player.isOp();
+            final boolean wasOp = player.isOp();
 
             try {
-                if (!isOP) {
+                if (!wasOp) {
                     player.setOp(true);
                 }
                 PLAYER_COMMAND.apply(tool, split, player);
             } finally {
-                player.setOp(isOP);
+                player.setOp(wasOp);
             }
         }
     },
@@ -58,10 +60,8 @@ public enum RewardType {
                 return;
             }
 
-            final Optional<XEnchantment> enchant = XEnchantment.matchXEnchantment(split[1]);
-            if (enchant.isPresent()) {
-                tool.enchant(enchant.get().getEnchant(), Integer.parseInt(split[2]));
-            }
+            resolveEnchantment(split[1]).ifPresent(
+                    enchantment -> tool.enchant(enchantment, Integer.parseInt(split[2])));
         }
     },
     ENCHANT_2("enchant2") {
@@ -72,15 +72,12 @@ public enum RewardType {
                 return;
             }
 
-            final Optional<XEnchantment> enchant = XEnchantment.matchXEnchantment(split[1]);
             final int level = Integer.parseInt(split[2]);
-
-            if (enchant.isPresent()
-                    && tool.getItemStack()
-                    .getEnchantmentLevel(Objects.requireNonNull(enchant.get().getEnchant()))
-                    < level) {
-                tool.enchant(enchant.get().getEnchant(), level);
-            }
+            resolveEnchantment(split[1]).ifPresent(enchantment -> {
+                if (tool.getItemStack().getEnchantmentLevel(enchantment) < level) {
+                    tool.enchant(enchantment, level);
+                }
+            });
         }
     },
     ENCHANT_3("enchant3") {
@@ -91,15 +88,11 @@ public enum RewardType {
                 return;
             }
 
-            final Optional<XEnchantment> enchant = XEnchantment.matchXEnchantment(split[1]);
             final int level = Integer.parseInt(split[2]);
-
-            if (enchant.isPresent()) {
-                final int currentLvl =
-                        tool.getItemStack()
-                                .getEnchantmentLevel(Objects.requireNonNull(enchant.get().getEnchant()));
-                tool.enchant(enchant.get().getEnchant(), currentLvl + level);
-            }
+            resolveEnchantment(split[1]).ifPresent(enchantment -> {
+                final int currentLevel = tool.getItemStack().getEnchantmentLevel(enchantment);
+                tool.enchant(enchantment, currentLevel + level);
+            });
         }
     },
     ATTRIBUTE("attribute") {
@@ -126,8 +119,7 @@ public enum RewardType {
     private final boolean shouldUpdate;
 
     RewardType(@NotNull String configKey) {
-        this.configKey = configKey;
-        this.shouldUpdate = true;
+        this(configKey, true);
     }
 
     RewardType(@NotNull String configKey, boolean shouldUpdate) {
@@ -144,6 +136,18 @@ public enum RewardType {
         }
 
         return Optional.empty();
+    }
+
+    @NotNull
+    private static Optional<Enchantment> resolveEnchantment(@NotNull String configuredName) {
+        final Registry<Enchantment> registry =
+                RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT);
+        final String normalized = configuredName.trim().toLowerCase(Locale.ROOT);
+        final NamespacedKey key = normalized.contains(":")
+                ? NamespacedKey.fromString(normalized)
+                : NamespacedKey.minecraft(normalized);
+
+        return key == null ? Optional.empty() : Optional.ofNullable(registry.get(key));
     }
 
     private static boolean isInteger(@NotNull String value) {

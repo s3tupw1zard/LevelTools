@@ -92,7 +92,7 @@ public final class TriggerListener implements Listener {
 
         handleTrigger(
                 killer,
-                killer.getItemInHand(),
+                killer.getInventory().getItemInMainHand(),
                 TriggerSlot.HAND,
                 event.getEntity(),
                 event,

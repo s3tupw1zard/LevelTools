@@ -132,6 +132,11 @@ combat:
     # attack, split that player's contribution evenly between both concrete items.
     dual_wield_split: true
 
+    # Fraction of that player's XP share that is discarded while dual-wielding.
+    # 0.30 = 30% lost, then the remaining 70% is split between both items.
+    # Set to 0.0 for no penalty or 1.0 to award no dual-wield combat XP.
+    dual_wield_xp_penalty: 0.30
+
     group_scaling:
       enabled: false
       per_extra_player: 0.05

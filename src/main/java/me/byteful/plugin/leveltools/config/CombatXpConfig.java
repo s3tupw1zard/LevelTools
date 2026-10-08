@@ -120,6 +120,7 @@ public final class CombatXpConfig {
             double minimumContribution,
             boolean countOverkill,
             boolean dualWieldSplit,
+            double dualWieldXpPenalty,
             boolean groupScalingEnabled,
             double perExtraPlayer,
             double maxGroupMultiplier
@@ -137,6 +138,7 @@ public final class CombatXpConfig {
                     clamp(section.getDouble("minimum_contribution", 0.02), 0.0, 1.0),
                     section.getBoolean("count_overkill", false),
                     section.getBoolean("dual_wield_split", true),
+                    clamp(section.getDouble("dual_wield_xp_penalty", 0.30), 0.0, 1.0),
                     group != null && group.getBoolean("enabled", false),
                     group == null ? 0.05 : Math.max(0.0, group.getDouble("per_extra_player", 0.05)),
                     group == null ? 1.25 : Math.max(1.0, group.getDouble("max_multiplier", 1.25))
@@ -145,7 +147,7 @@ public final class CombatXpConfig {
 
         @NotNull
         private static Sharing defaults() {
-            return new Sharing(true, 45000L, 0.02, false, true, false, 0.05, 1.25);
+            return new Sharing(true, 45000L, 0.02, false, true, 0.30, false, 0.05, 1.25);
         }
 
         public double groupMultiplier(int players) {

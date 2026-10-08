@@ -50,7 +50,7 @@ dependencies {
 }
 
 group = 'me.byteful.plugin'
-version = '2.2.0'
+version = '2026.1.0-SNAPSHOT'
 description = 'LevelTools'
 
 java {
@@ -86,7 +86,7 @@ shadowJar {
 
 tasks.withType(JavaCompile).configureEach {
     options.release.set(25)
-    options.compilerArgs += ["-parameters"]
+    options.compilerArgs += ["-parameters", "-Xlint:all", "-Werror"]
 }
 
 processResources {

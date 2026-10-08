@@ -151,7 +151,8 @@ public class LevelToolsCommand {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             final int initial = tool.getLevel();
-            tool.setLevel(level);
+            final int targetLevel = Math.max(0, Math.min(level, itemProfile.getMaxLevel()));
+            tool.setLevel(targetLevel);
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
             if (initial != tool.getLevel()) {
                 LevelToolsUtil.handleReward(tool, player);
@@ -178,9 +179,12 @@ public class LevelToolsCommand {
         if (LevelToolsUtil.isSupportedTool(item.getType())) {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
-            tool.setLevel(tool.getLevel() + 1);
+            final int initial = tool.getLevel();
+            tool.setLevel(Math.min(initial + 1, itemProfile.getMaxLevel()));
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
-            LevelToolsUtil.handleReward(tool, player);
+            if (initial != tool.getLevel()) {
+                LevelToolsUtil.handleReward(tool, player);
+            }
             player.sendMessage(
                     colorize(
                             Objects.requireNonNull(

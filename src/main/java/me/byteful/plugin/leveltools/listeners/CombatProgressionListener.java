@@ -377,6 +377,22 @@ public final class CombatProgressionListener implements Listener {
             }
         }
 
+        final ItemStack mainHand = player.getInventory().getItemInMainHand();
+        if (contribution.itemId.equals(LevelToolsUtil.getStoredItemId(mainHand))) {
+            return new ResolvedWeapon(
+                    mainHand,
+                    updated -> player.getInventory().setItemInMainHand(updated)
+            );
+        }
+
+        final ItemStack offHand = player.getInventory().getItemInOffHand();
+        if (contribution.itemId.equals(LevelToolsUtil.getStoredItemId(offHand))) {
+            return new ResolvedWeapon(
+                    offHand,
+                    updated -> player.getInventory().setItemInOffHand(updated)
+            );
+        }
+
         final ItemStack[] contents = player.getInventory().getContents();
         for (int slot = 0; slot < contents.length; slot++) {
             final ItemStack item = contents[slot];

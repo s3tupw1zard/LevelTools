@@ -87,6 +87,37 @@ public final class ConfigUpdater {
             changed = true;
         }
 
+        changed |= ensureString(
+                config,
+                "messages.successfully_set_level",
+                "&aSet {item} to level {level}."
+        );
+        changed |= ensureString(
+                config,
+                "messages.successfully_set_xp",
+                "&aSet {item} XP to {xp}."
+        );
+        changed |= ensureString(
+                config,
+                "messages.successfully_level_up",
+                "&aIncreased {item} to level {level}."
+        );
+        changed |= ensureString(
+                config,
+                "messages.already_max_level",
+                "&e{item} is already at the maximum level ({level})."
+        );
+        changed |= ensureString(
+                config,
+                "messages.successfully_reset_tools",
+                "&aReset {count} LevelTools item(s) for {player} to level 1 with 0 XP."
+        );
+        changed |= ensureString(
+                config,
+                "messages.successfully_reset_hand_tool",
+                "&aReset {item} for {player} to level 1 with 0 XP."
+        );
+
         if (config.contains("force_nbt")) {
             config.set("force_nbt", null);
             changed = true;
@@ -275,6 +306,16 @@ public final class ConfigUpdater {
                         "&aDurability: &f+{durability_bonus}"
                 )
         );
+
+        if (!config.contains("profiles.armor.action_bar")) {
+            config.set("profiles.armor.action_bar.enabled", true);
+            config.set(
+                    "profiles.armor.action_bar.text",
+                    "&bArmor {slot}: {progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+            );
+            changed = true;
+        }
+
         return changed;
     }
 
@@ -299,6 +340,18 @@ public final class ConfigUpdater {
         return profileId.trim()
                 .toLowerCase()
                 .replaceAll("[^a-z0-9_-]", "_");
+    }
+
+    private static boolean ensureString(
+            @NotNull YamlConfiguration config,
+            @NotNull String path,
+            @NotNull String value
+    ) {
+        if (config.contains(path)) {
+            return false;
+        }
+        config.set(path, value);
+        return true;
     }
 
     private void save(

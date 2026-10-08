@@ -1,133 +1,165 @@
 [![Java CI with Gradle](https://github.com/s3tupw1zard/LevelTools/actions/workflows/gradle.yml/badge.svg?branch=main)](https://github.com/s3tupw1zard/LevelTools/actions/workflows/gradle.yml)
-[![](https://jitpack.io/v/s3tupw1zard/LevelTools.svg)](https://jitpack.io/#s3tupw1zard/LevelTools)
 
 <h5 align="center">Maintained fork: https://github.com/s3tupw1zard/LevelTools</h5>
 <h5 align="center">Issues / support: https://github.com/s3tupw1zard/LevelTools/issues</h5>
 <h5 align="center">Original project by byteful: https://github.com/byteful/LevelTools</h5>
-<h5 align="center">Upstream documentation: https://github.com/byteful/LevelTools/wiki</h5>
 
 ![Logo](https://github.com/byteful/LevelTools/blob/main/LevelTools%20Large%20Logo.png?raw=true)
 
 <h3 align="center">LevelTools, originally created by byteful and extended by s3tupw1zard.</h3>
 
-## Features
+## 2026.1 Direction
 
-- Targets Paper/Purpur 26.2+ with Java 25.
-- Supports Folia.
-- No required dependencies; PlaceholderAPI is optional.
-- Profile-based configuration system.
-- Any item can level up with custom triggers.
-- Configurable global, item-profile, and permission-based XP formulas.
-- Commands & enchants on level up.
-- Supports blacklisting/whitelisting for blocks, entities, and items.
-- ActionBar notifications.
-- Item lore modification.
-- Optional enchanted-book blocking for LevelTools items.
-- Farming trigger support for fully grown player-planted crops.
+The maintained fork targets Paper/Purpur 26.2+ and Java 25. Versioning uses
+SemVer-compatible CalVer (`YYYY.RELEASE.PATCH`), with `2026.1.0` as the first
+stable target and `2026.1.0-SNAPSHOT` for development builds.
 
-## What's New in 2026.1
+The 2026.1 progression model deliberately separates item levels from enchantments:
 
-The maintained fork uses SemVer-compatible CalVer: `YYYY.RELEASE.PATCH`.
-The first stable target is `2026.1.0`; development builds use
-`2026.1.0-SNAPSHOT`.
+- Level **1** is the vanilla/baseline item.
+- Every level improves formula-derived stats; there are no hardcoded per-level stat tables.
+- Default max level is 100 but the curve supports other caps without making large caps exponentially impractical.
+- Leveling does **not** add enchantments automatically.
+- Player-applied enchantments keep their vanilla behavior and can add small configurable LevelTools stat bonuses.
+- Item state is stored in PDC; legacy LevelTools NBT data is migrated one-way.
+- Java compilation is enforced with `-Xlint:all -Werror`.
 
-- Java 25 and Paper/Purpur 26.2 baseline.
-- Current Gradle and Shadow toolchain.
-- Fork-owned update checking and support links.
-- Removal of legacy Bukkit farming and attribute APIs.
-- Warning-free compilation enforced in CI.
+## Formula-Based Stats
 
-### Previous upstream 2.2 changes
+Stats use normalized level progress, so the same profile remains meaningful at max level 50, 100, 500 or 1000.
 
-- `ARMOR_DURABILITY` trigger awards XP when armor takes damage.
-- Configurable XP formulas under `xp_formulas`, selectable per player via `leveltools.formula.<id>`.
-- Toggle to block enchanted books from being applied to LevelTools items.
-- `block_data_storage` option (`SQLITE`) for persisting per-block placement data.
-- Farming trigger gains `ignore_player_placed_blocks_for_fully_grown_crops` for fully-grown crop handling.
-- Automatic config migration from v1.x and earlier v2.x layouts.
+```text
+progress = (level - 1) / (maxLevel - 1)
 
-## Profile System
+value = start + (max - start) * progress^exponent
+```
 
-LevelTools uses a modular profile-based configuration system. Any item can be configured to level up.
+Default stat types:
 
-### Profile Types
+- Damage
+- Critical hit chance
+- Critical hit damage
+- Defense
+- Critical defense
+- Max durability
 
-| Profile Type | Purpose | File |
-|-------------|---------|------|
-| **Trigger Profiles** | Define how XP is gained | `trigger_profiles.yml` |
-| **Reward Profiles** | Define rewards per level | `reward_profiles.yml` |
-| **Display Profiles** | Define name, lore, action bar | `display_profiles.yml` |
-| **Item Profiles** | Tie everything together | `item_profiles.yml` |
+Melee weapons currently default to a maximum **+300% LevelTools damage bonus**
+(4x the baseline before vanilla enchantment effects), 15% LevelTools critical
+chance and +75% LevelTools critical damage at max level.
 
-### Trigger Types
+Armor defense is combined multiplicatively across pieces, avoiding accidental
+100%+ damage reduction.
 
-- `BLOCK_BREAK` - XP when breaking blocks
-- `ENTITY_KILL` - XP when killing entities
-- `FISHING` - XP when catching items
-- `RIGHT_CLICK` / `LEFT_CLICK` - XP on click
-- `CONSUME` - XP when consuming items
-- `FARMING` - XP when tilling soil and breaking fully-grown crops
-- `ARMOR_DURABILITY` - XP when worn armor takes damage
+## XP Progression
 
-### Default Supported Items
+Required XP is configured in `progression_profiles.yml`.
 
-Out of the box, LevelTools ships profiles for:
-- Pickaxes, Axes, Shovels (block mining)
-- Swords (combat)
-- Bows, Crossbows (ranged)
-- Fishing Rods (fishing)
-- Tridents (combat / ranged)
-- Hoes (farming)
+The default profile starts at 100 XP for Level 1 -> 2 and ramps non-linearly to
+10,000 XP for the final Level 99 -> 100 transition.
 
-Add any item by creating custom profiles. See the [Wiki](https://github.com/byteful/LevelTools/wiki) for details.
+`max_level_influence` controls how total grind changes when the level cap changes:
 
-### Migration from v1.x
+- `0.0`: roughly the same total XP even with more/fewer level steps.
+- `0.5`: sublinear total-XP growth (default).
+- `1.0`: roughly linear total-XP growth.
 
-Your old config will be automatically backed up to `old_config.yml` and migrated to the new profile system.
+At max level the display is capped at full progress instead of showing a fake next level.
 
-Earlier v2.x configs are also updated automatically: `level_xp_formula` is moved to `xp_formulas.global`.
+## Combat XP and Shared Kills
+
+Combat XP no longer uses a flat 1-2 XP reward. A mob produces an XP pool from its
+max health and an optional entity multiplier. Difficult mobs ship with stronger
+multipliers; for example Warden, Wither and Ender Dragon are explicitly weighted.
+
+When multiple players/items contribute damage:
+
+- XP is damage-weighted.
+- Overkill is ignored by default.
+- Contributions below 2% are ignored by default.
+- The XP pool is not duplicated for every player.
+- Contributions are tracked per player **and per LevelTools item**, so switching
+  weapons does not move all XP to the item held at death.
+- Optional group scaling exists but is disabled by default.
+
+Configured boss mobs can also grant a level-based bonus. This bonus can require
+one or more LevelTools critical hits and is protected by a persistent per-player,
+per-mob claim interval.
+
+## Configuration Layout
+
+| File | Purpose |
+| --- | --- |
+| `config.yml` | Runtime/general plugin settings |
+| `item_profiles.yml` | Materials and references to the profiles below |
+| `progression_profiles.yml` | Level cap and non-linear required-XP curves |
+| `stat_profiles.yml` | Damage, crit, defense and durability curves |
+| `xp_sources.yml` | Mining, farming, fishing, armor and combat XP values |
+| `enchantment_modifiers.yml` | Optional enchantment -> LevelTools stat contributions |
+| `trigger_profiles.yml` | When/where a trigger may fire; filters and slots |
+| `display_profiles.yml` | Compact item lore, action bar and progress display |
+| `reward_profiles.yml` | Optional milestone commands/cosmetics; no default auto-enchants |
+
+Existing 2026.1-pre-progression profile files are backed up and migrated. Custom
+legacy `max_level` values are converted to dedicated progression profiles.
+
+## Default Supported Items
+
+- Pickaxes, axes, shovels and hoes
+- Swords
+- Bows and crossbows
+- Tridents
+- Maces
+- Wooden through Netherite spears, including Copper
+- Wearable armor, including Copper and Turtle Helmet
+- Fishing rods
+
+## Compact Item Display
+
+Different display profiles keep tooltips readable instead of showing every
+possible stat on every item.
+
+A weapon can show:
+
+```text
+Level 73/100
+[progress] 6.84K/7.52K
+
+Attack: 24.61 (+207.6%)
+Critical: 9.6% • +48.2%
+Durability: +70.1%
+```
+
+Armor instead shows Defense, Critical Defense and Durability. A detailed stats
+GUI is intentionally left for a later feature.
 
 ## Commands
 
 | Command | Description | Permission |
-|---------|-------------|------------|
+| --- | --- | --- |
 | `/leveltools help [page]` | Paginated command help | None |
-| `/leveltools reload` | Reloads configuration | `leveltools.admin` |
+| `/leveltools reload` | Reload configuration | `leveltools.admin` |
 | `/leveltools reset <player>` | Reset hand item for player | `leveltools.admin` |
-| `/leveltools reset <player> --all` | Reset all items for player | `leveltools.admin` |
+| `/leveltools reset <player> --all` | Reset all LevelTools items for player | `leveltools.admin` |
 | `/leveltools xp <amount>` | Set hand item XP | `leveltools.admin` |
-| `/leveltools level <level>` | Set hand item level | `leveltools.admin` |
-| `/leveltools levelup` | Increase hand item level by 1 | `leveltools.admin` |
+| `/leveltools level <level>` | Set hand item level within its progression cap | `leveltools.admin` |
+| `/leveltools levelup` | Increase hand item level by one | `leveltools.admin` |
 | `/leveltools debug` | Show debug information | `leveltools.admin` |
-
-## Permissions
-
-| Permission | Description | Default |
-|------------|-------------|---------|
-| `leveltools.admin` | Access to admin commands | op |
-| `leveltools.enabled` | Allow leveling for this player | true |
-| `leveltools.formula.<id>` | Selects an XP formula defined under `xp_formulas` | false |
-
-## Developer API
-
-**View detailed API usage [here](https://github.com/byteful/LevelTools/wiki/Developer-API).**
 
 ## PlaceholderAPI
 
 | Placeholder | Description |
-|-------------|-------------|
-| `%leveltools_level%` | Current item level (main hand) |
-| `%leveltools_xp%` | Current XP (main hand) |
-| `%leveltools_max_xp%` | XP required for the next level |
-| `%leveltools_progress%` | Progress percentage (0-100, 1 decimal) |
+| --- | --- |
+| `%leveltools_level%` | Current item level |
+| `%leveltools_xp%` | Current item XP |
+| `%leveltools_max_xp%` | XP threshold for the current level |
+| `%leveltools_progress%` | Progress percentage |
 | `%leveltools_progress_bar%` | Rendered progress bar |
-| `%leveltools_item_profile%` | Item profile id for the hand item |
-| `%leveltools_max_level%` | Max level for the current item profile |
+| `%leveltools_item_profile%` | Current item profile |
+| `%leveltools_max_level%` | Max level from the progression profile |
 
-## Documentation
+## Attribution
 
-- [Configuration](https://github.com/byteful/LevelTools/wiki/Configuration)
-- [Trigger Profiles](https://github.com/byteful/LevelTools/wiki/Trigger-Profiles)
-- [Reward Profiles](https://github.com/byteful/LevelTools/wiki/Reward-Profiles)
-- [Display Profiles](https://github.com/byteful/LevelTools/wiki/Display-Profiles)
-- [Item Profiles](https://github.com/byteful/LevelTools/wiki/Item-Profiles)
+This repository is a maintained fork of byteful's LevelTools and remains licensed
+under the GNU Affero General Public License v3.0. The original LevelTools codebase
+was created by byteful; the 2026.1 modernization and extended progression work is
+maintained by s3tupw1zard.

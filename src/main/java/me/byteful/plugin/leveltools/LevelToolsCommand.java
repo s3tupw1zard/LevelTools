@@ -79,7 +79,7 @@ public class LevelToolsCommand {
 
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(hand);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(hand.getType());
-            tool.setLevel(0);
+            tool.setLevel(1);
             tool.setXp(0);
             LevelToolsUtil.setHand(target, LevelToolsUtil.getItemStack(tool, target, itemProfile));
             sender.sendMessage(
@@ -103,7 +103,7 @@ public class LevelToolsCommand {
             }
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
-            tool.setLevel(0);
+            tool.setLevel(1);
             tool.setXp(0);
             inv.setItem(i, LevelToolsUtil.getItemStack(tool, target, itemProfile));
         }
@@ -151,7 +151,7 @@ public class LevelToolsCommand {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             final int initial = tool.getLevel();
-            final int targetLevel = Math.max(0, Math.min(level, itemProfile.getMaxLevel()));
+            final int targetLevel = Math.max(1, Math.min(level, LevelToolsUtil.getMaxLevel(itemProfile)));
             tool.setLevel(targetLevel);
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
             if (initial != tool.getLevel()) {
@@ -180,7 +180,7 @@ public class LevelToolsCommand {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             final int initial = tool.getLevel();
-            tool.setLevel(Math.min(initial + 1, itemProfile.getMaxLevel()));
+            tool.setLevel(Math.min(initial + 1, LevelToolsUtil.getMaxLevel(itemProfile)));
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
             if (initial != tool.getLevel()) {
                 LevelToolsUtil.handleReward(tool, player);

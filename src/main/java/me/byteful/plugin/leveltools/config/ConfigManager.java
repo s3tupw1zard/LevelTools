@@ -36,6 +36,10 @@ public final class ConfigManager {
     private FileConfiguration rewardProfilesConfig;
     private FileConfiguration displayProfilesConfig;
     private FileConfiguration itemProfilesConfig;
+    private FileConfiguration progressionProfilesConfig;
+    private FileConfiguration statProfilesConfig;
+    private FileConfiguration xpSourcesConfig;
+    private FileConfiguration enchantmentModifiersConfig;
     private Settings settings;
 
     public ConfigManager(@NotNull LevelToolsPlugin plugin) {
@@ -54,13 +58,23 @@ public final class ConfigManager {
             logger.info("Migration complete!");
         }
 
-        new ConfigUpdater(dataFolder, logger).updateMainConfig();
+        final ConfigUpdater updater = new ConfigUpdater(dataFolder, logger);
+        updater.updateMainConfig();
 
         mainConfig = loadOrCreate("config.yml");
         triggerProfilesConfig = loadOrCreate("trigger_profiles.yml");
         rewardProfilesConfig = loadOrCreate("reward_profiles.yml");
         displayProfilesConfig = loadOrCreate("display_profiles.yml");
         itemProfilesConfig = loadOrCreate("item_profiles.yml");
+        progressionProfilesConfig = loadOrCreate("progression_profiles.yml");
+        statProfilesConfig = loadOrCreate("stat_profiles.yml");
+        xpSourcesConfig = loadOrCreate("xp_sources.yml");
+        enchantmentModifiersConfig = loadOrCreate("enchantment_modifiers.yml");
+
+        updater.updateProgressionConfigs();
+        itemProfilesConfig = loadOrCreate("item_profiles.yml");
+        progressionProfilesConfig = loadOrCreate("progression_profiles.yml");
+
         settings = Settings.from(mainConfig, logger);
 
         logger.info("Loaded all configuration files.");
@@ -140,6 +154,26 @@ public final class ConfigManager {
     @NotNull
     public FileConfiguration getItemProfilesConfig() {
         return itemProfilesConfig;
+    }
+
+    @NotNull
+    public FileConfiguration getProgressionProfilesConfig() {
+        return progressionProfilesConfig;
+    }
+
+    @NotNull
+    public FileConfiguration getStatProfilesConfig() {
+        return statProfilesConfig;
+    }
+
+    @NotNull
+    public FileConfiguration getXpSourcesConfig() {
+        return xpSourcesConfig;
+    }
+
+    @NotNull
+    public FileConfiguration getEnchantmentModifiersConfig() {
+        return enchantmentModifiersConfig;
     }
 
     @NotNull

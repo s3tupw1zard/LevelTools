@@ -22,13 +22,15 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 public class PDCLevelToolsItem implements LevelToolsItem {
     @NotNull
     public static final NamespacedKey
             LEVEL_KEY = new NamespacedKey(LevelToolsPlugin.getInstance(), "levelToolsLevel"),
             XP_KEY = new NamespacedKey(LevelToolsPlugin.getInstance(), "levelToolsXp"),
-            LAST_REWARD_KEY = new NamespacedKey(LevelToolsPlugin.getInstance(), "levelToolsReward");
+            LAST_REWARD_KEY = new NamespacedKey(LevelToolsPlugin.getInstance(), "levelToolsReward"),
+            ITEM_ID_KEY = new NamespacedKey(LevelToolsPlugin.getInstance(), "item_id");
 
     @NotNull
     private ItemStack stack;
@@ -39,6 +41,8 @@ public class PDCLevelToolsItem implements LevelToolsItem {
     private int level;
     private double xp;
     private int lastHandledReward;
+    @NotNull
+    private String itemId;
 
     public PDCLevelToolsItem(@NotNull ItemStack stack) {
         this(stack, stack.getItemMeta());
@@ -53,9 +57,10 @@ public class PDCLevelToolsItem implements LevelToolsItem {
 
     private void readState(@Nullable ItemMeta meta) {
         if (meta == null) {
-            level = 0;
+            level = 1;
             xp = 0.0D;
             lastHandledReward = -1;
+            itemId = UUID.randomUUID().toString();
 
             return;
         }
@@ -64,9 +69,11 @@ public class PDCLevelToolsItem implements LevelToolsItem {
         final Integer storedLevel = pdc.get(LEVEL_KEY, PersistentDataType.INTEGER);
         final Double storedXp = pdc.get(XP_KEY, PersistentDataType.DOUBLE);
         final Integer storedLastReward = pdc.get(LAST_REWARD_KEY, PersistentDataType.INTEGER);
-        level = storedLevel == null ? 0 : Math.max(storedLevel, 0);
+        final String storedItemId = pdc.get(ITEM_ID_KEY, PersistentDataType.STRING);
+        level = storedLevel == null ? 1 : Math.max(storedLevel, 1);
         xp = storedXp == null ? 0.0D : Math.max(storedXp, 0.0D);
         lastHandledReward = storedLastReward == null ? -1 : storedLastReward;
+        itemId = storedItemId == null ? UUID.randomUUID().toString() : storedItemId;
     }
 
     @Override
@@ -84,7 +91,9 @@ public class PDCLevelToolsItem implements LevelToolsItem {
         pdc.set(LEVEL_KEY, PersistentDataType.INTEGER, level);
         pdc.set(XP_KEY, PersistentDataType.DOUBLE, xp);
         pdc.set(LAST_REWARD_KEY, PersistentDataType.INTEGER, lastHandledReward);
+        pdc.set(ITEM_ID_KEY, PersistentDataType.STRING, itemId);
 
+        LevelToolsUtil.applyCalculatedDurability(built, meta, level);
         LevelToolsUtil.applyDisplay(built, meta, enchantments, level, xp, maxXp);
         applyAttributes(meta);
         built.setItemMeta(meta);
@@ -154,7 +163,7 @@ public class PDCLevelToolsItem implements LevelToolsItem {
 
     @Override
     public void setLevel(int level) {
-        this.level = Math.max(level, 0);
+        this.level = Math.max(level, 1);
     }
 
     @Override
@@ -185,6 +194,15 @@ public class PDCLevelToolsItem implements LevelToolsItem {
     @Override
     public void modifyAttribute(String attribute, double modifier) {
         attributes.put(attribute, modifier);
+    }
+
+    @NotNull
+    public String getItemId() {
+        return itemId;
+    }
+
+    public void setItemId(@NotNull String itemId) {
+        this.itemId = itemId;
     }
 
     @NotNull

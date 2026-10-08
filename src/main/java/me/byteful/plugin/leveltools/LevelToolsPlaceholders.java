@@ -70,7 +70,9 @@ public class LevelToolsPlaceholders extends PlaceholderExpansion {
                 LevelToolsItem item = LevelToolsUtil.createLevelToolsItem(hand);
                 ItemProfile itemProfile = LevelToolsUtil.getItemProfile(hand.getType());
                 double maxXp = LevelToolsUtil.getMaxXp(player, itemProfile, item);
-                return LevelToolsUtil.createProgressBar(item.getXp(), maxXp, getDisplayProfile(itemProfile));
+                final double displayXp =
+                        item.getLevel() >= LevelToolsUtil.getMaxLevel(itemProfile) ? maxXp : item.getXp();
+                return LevelToolsUtil.createProgressBar(displayXp, maxXp, getDisplayProfile(itemProfile));
             }
 
             case "progress": {
@@ -80,7 +82,9 @@ public class LevelToolsPlaceholders extends PlaceholderExpansion {
                 if (maxXp <= 0.0) {
                     return "0";
                 }
-                return "" + LevelToolsUtil.round((item.getXp() / maxXp) * 100.0, 1);
+                final double displayXp =
+                        item.getLevel() >= LevelToolsUtil.getMaxLevel(itemProfile) ? maxXp : item.getXp();
+                return "" + LevelToolsUtil.round((displayXp / maxXp) * 100.0, 1);
             }
 
             case "item_profile": {
@@ -90,7 +94,7 @@ public class LevelToolsPlaceholders extends PlaceholderExpansion {
 
             case "max_level": {
                 ItemProfile itemProfile = LevelToolsUtil.getItemProfile(hand.getType());
-                return itemProfile != null ? String.valueOf(itemProfile.getMaxLevel()) : "N/A";
+                return itemProfile != null ? String.valueOf(LevelToolsUtil.getMaxLevel(itemProfile)) : "N/A";
             }
 
             default: {

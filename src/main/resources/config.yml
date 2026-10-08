@@ -46,12 +46,8 @@ messages:
 # Modes: "HIGHER_OF_BOTH" (Takes level and xp of higher level item), "LOWER_OF_BOTH" (Takes level and xp of lower level item), OR "ADD_BOTH" (Adds the level and XP of both items)
 anvil_combine: "ADD_BOTH"
 
-# The mathematical formula to calculate the required XP for next level.
-# Placeholders/Variables provided: {current_level}
-# The global formula is required. Additional formulas can be added and selected with leveltools.formula.<id>.
-# Item profile level_xp_formula values override both global and permission formulas.
-xp_formulas:
-  global: "100 + {current_level} * 100"
+# Level caps and required XP curves are configured in progression_profiles.yml.
+# Action XP values are configured in xp_sources.yml.
 
 # Should blocks that are placed by a player count towards XP?
 playerPlacedBlocks: false

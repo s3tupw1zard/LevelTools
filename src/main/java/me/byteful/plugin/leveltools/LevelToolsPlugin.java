@@ -6,13 +6,19 @@ import me.byteful.plugin.leveltools.api.block.BlockDataManagerFactory;
 import me.byteful.plugin.leveltools.api.event.LevelToolsLoadEvent;
 import me.byteful.plugin.leveltools.api.scheduler.Scheduler;
 import me.byteful.plugin.leveltools.api.trigger.TriggerRegistry;
+import me.byteful.plugin.leveltools.config.CombatXpConfig;
 import me.byteful.plugin.leveltools.config.ConfigManager;
+import me.byteful.plugin.leveltools.config.EnchantmentModifierRegistry;
 import me.byteful.plugin.leveltools.config.XpFormulaRegistry;
+import me.byteful.plugin.leveltools.config.XpSourceRegistry;
 import me.byteful.plugin.leveltools.listeners.anvil.AnvilListener;
 import me.byteful.plugin.leveltools.listeners.BlockPlacementListener;
+import me.byteful.plugin.leveltools.listeners.CombatProgressionListener;
+import me.byteful.plugin.leveltools.listeners.DefenseListener;
 import me.byteful.plugin.leveltools.listeners.TriggerListener;
 import me.byteful.plugin.leveltools.listeners.anvil.LegacyAnvilListener;
 import me.byteful.plugin.leveltools.profile.ProfileManager;
+import me.byteful.plugin.leveltools.profile.stat.StatCalculator;
 import me.byteful.plugin.leveltools.util.LevelToolsUtil;
 import me.byteful.plugin.leveltools.util.UpdateChecker;
 import me.byteful.plugin.leveltools.util.XPBooster;
@@ -47,6 +53,10 @@ public final class LevelToolsPlugin extends JavaPlugin {
     private ConfigManager configManager;
     private ProfileManager profileManager;
     private TriggerRegistry triggerRegistry;
+    private EnchantmentModifierRegistry enchantmentModifierRegistry;
+    private StatCalculator statCalculator;
+    private CombatXpConfig combatXpConfig;
+    private XpSourceRegistry xpSourceRegistry;
 
     public static LevelToolsPlugin getInstance() {
         return instance;
@@ -79,6 +89,11 @@ public final class LevelToolsPlugin extends JavaPlugin {
         Bukkit.getPluginManager().callEvent(new LevelToolsLoadEvent(this, LevelToolsLoadEvent.LoadPhase.POST_TRIGGERS));
 
         loadProfiles();
+        enchantmentModifierRegistry =
+                EnchantmentModifierRegistry.load(configManager.getEnchantmentModifiersConfig());
+        statCalculator = new StatCalculator(profileManager, enchantmentModifierRegistry);
+        combatXpConfig = CombatXpConfig.load(configManager.getXpSourcesConfig());
+        xpSourceRegistry = XpSourceRegistry.load(configManager.getXpSourcesConfig());
         getLogger().info("Loaded profiles...");
 
         Bukkit.getPluginManager().callEvent(new LevelToolsLoadEvent(this, LevelToolsLoadEvent.LoadPhase.POST_PROFILES));
@@ -150,7 +165,9 @@ public final class LevelToolsPlugin extends JavaPlugin {
                 configManager.getTriggerProfilesConfig(),
                 configManager.getRewardProfilesConfig(),
                 configManager.getDisplayProfilesConfig(),
-                configManager.getItemProfilesConfig()
+                configManager.getItemProfilesConfig(),
+                configManager.getProgressionProfilesConfig(),
+                configManager.getStatProfilesConfig()
         );
     }
 
@@ -158,6 +175,8 @@ public final class LevelToolsPlugin extends JavaPlugin {
         final PluginManager pm = Bukkit.getPluginManager();
         pm.registerEvents(new BlockPlacementListener(scheduler), this);
         pm.registerEvents(new TriggerListener(profileManager, triggerRegistry), this);
+        pm.registerEvents(new CombatProgressionListener(profileManager), this);
+        pm.registerEvents(new DefenseListener(profileManager), this);
         pm.registerEvents(new XPBooster(), this);
         if (LevelToolsUtil.requiresLegacyAnvilListener()) {
             pm.registerEvents(new LegacyAnvilListener(), this);
@@ -191,6 +210,11 @@ public final class LevelToolsPlugin extends JavaPlugin {
 
         try {
             loadProfiles();
+            enchantmentModifierRegistry =
+                    EnchantmentModifierRegistry.load(configManager.getEnchantmentModifiersConfig());
+            statCalculator = new StatCalculator(profileManager, enchantmentModifierRegistry);
+            combatXpConfig = CombatXpConfig.load(configManager.getXpSourcesConfig());
+            xpSourceRegistry = XpSourceRegistry.load(configManager.getXpSourcesConfig());
         } catch (RuntimeException e) {
             closeBlockDataManager(newBlockDataManager);
             throw e;
@@ -278,5 +302,17 @@ public final class LevelToolsPlugin extends JavaPlugin {
 
     public TriggerRegistry getTriggerRegistry() {
         return triggerRegistry;
+    }
+
+    public StatCalculator getStatCalculator() {
+        return statCalculator;
+    }
+
+    public CombatXpConfig getCombatXpConfig() {
+        return combatXpConfig;
+    }
+
+    public XpSourceRegistry getXpSourceRegistry() {
+        return xpSourceRegistry;
     }
 }

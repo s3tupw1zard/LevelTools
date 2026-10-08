@@ -51,11 +51,7 @@ public final class XPHandler {
 
         tool.setXp(xpEvent.getNewXp());
 
-        double maxXp = getMaxXp(player, itemProfile, tool);
-        if (tool.getXp() >= maxXp && handleLevelUp(tool, player, itemProfile, maxXp)) {
-            maxXp = getMaxXp(player, itemProfile, tool);
-        }
-
+        double maxXp = advanceLevels(tool, player, itemProfile);
         handleReward(tool, player, itemProfile);
 
         if (deferCommit) {
@@ -87,11 +83,7 @@ public final class XPHandler {
 
         tool.setXp(xpEvent.getNewXp());
 
-        double maxXp = getMaxXp(player, itemProfile, tool);
-        if (tool.getXp() >= maxXp && handleLevelUp(tool, player, itemProfile, maxXp)) {
-            maxXp = getMaxXp(player, itemProfile, tool);
-        }
-
+        double maxXp = advanceLevels(tool, player, itemProfile);
         handleReward(tool, player, itemProfile);
         committer.accept(tool.getItemStack(maxXp));
         showActionBar(tool, player, itemProfile, maxXp);
@@ -126,6 +118,30 @@ public final class XPHandler {
         }, player.getLocation(), 1);
     }
 
+    private double advanceLevels(
+            @NotNull LevelToolsItem tool,
+            @NotNull Player player,
+            @NotNull ItemProfile itemProfile
+    ) {
+        final int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
+        double maxXp = getMaxXp(player, itemProfile, tool);
+
+        while (tool.getLevel() < maxLevel && tool.getXp() >= maxXp) {
+            if (!handleLevelUp(tool, player, itemProfile, maxXp)) {
+                break;
+            }
+            maxXp = getMaxXp(player, itemProfile, tool);
+        }
+
+        if (tool.getLevel() >= maxLevel) {
+            tool.setLevel(maxLevel);
+            tool.setXp(0.0);
+            maxXp = getMaxXp(player, itemProfile, tool);
+        }
+
+        return maxXp;
+    }
+
     private boolean handleLevelUp(
             @NotNull LevelToolsItem tool,
             @NotNull Player player,
@@ -133,7 +149,7 @@ public final class XPHandler {
             double maxXp
     ) {
         int newLevel = tool.getLevel() + 1;
-        int maxLevel = itemProfile.getMaxLevel();
+        int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
 
         if (newLevel > maxLevel) {
             tool.setXp(maxXp);
@@ -182,14 +198,16 @@ public final class XPHandler {
             return;
         }
 
-        String progressBar = displayProfile.getProgressBar().buildProgressBar(tool.getXp(), maxXp);
+        final int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
+        final double displayXp = tool.getLevel() >= maxLevel ? maxXp : tool.getXp();
+        String progressBar = displayProfile.getProgressBar().buildProgressBar(displayXp, maxXp);
         String text = Text.colorize(actionBar.getText()
                 .replace("{progress_bar}", progressBar)
-                .replace("{xp}", String.valueOf(tool.getXp()))
+                .replace("{xp}", String.valueOf(displayXp))
                 .replace("{max_xp}", String.valueOf(maxXp))
                 .replace("{level}", String.valueOf(tool.getLevel()))
                 .replace("{max_xp_formatted}", formatMoney(maxXp))
-                .replace("{xp_formatted}", formatMoney(tool.getXp())));
+                .replace("{xp_formatted}", formatMoney(displayXp)));
 
         LevelToolsUtil.sendActionBar(player, text);
     }

@@ -1,22 +1,8 @@
 #
-# Item Profiles - Define which items can level up
+# Item Profiles - Define which items can level up.
+# Strength and XP curves are referenced from dedicated profile files.
 #
-# Wiki: https://github.com/byteful/LevelTools/wiki/Item-Profiles
-#
-# Each item profile links:
-# - materials: List of item materials
-# - trigger_profiles: How XP is gained
-# - reward_profile: What rewards are given
-# - display_profile: How item is displayed
-# - max_level: Maximum level for this item type
-# - level_xp_formula: Optional formula override for this profile
-#
-# Supports inheritance with 'extends' key.
-# One material can only belong to ONE profile (enforced at startup).
-#
-
 profiles:
-  # Pickaxes
   pickaxes:
     materials:
       - WOODEN_PICKAXE
@@ -26,13 +12,12 @@ profiles:
       - COPPER_PICKAXE
       - DIAMOND_PICKAXE
       - NETHERITE_PICKAXE
-    trigger_profiles:
-      - block_mining
-    reward_profile: tools
-    display_profile: default
-    max_level: 100
+    trigger_profiles: [block_mining]
+    reward_profile: none
+    display_profile: tool
+    progression_profile: default
+    stat_profile: tool
 
-  # Axes
   axes:
     materials:
       - WOODEN_AXE
@@ -42,13 +27,12 @@ profiles:
       - COPPER_AXE
       - DIAMOND_AXE
       - NETHERITE_AXE
-    trigger_profiles:
-      - block_mining
-    reward_profile: tools
-    display_profile: default
-    max_level: 100
+    trigger_profiles: [block_mining]
+    reward_profile: none
+    display_profile: tool
+    progression_profile: default
+    stat_profile: tool
 
-  # Shovels
   shovels:
     materials:
       - WOODEN_SHOVEL
@@ -58,13 +42,12 @@ profiles:
       - COPPER_SHOVEL
       - DIAMOND_SHOVEL
       - NETHERITE_SHOVEL
-    trigger_profiles:
-      - block_mining
-    reward_profile: tools
-    display_profile: default
-    max_level: 100
+    trigger_profiles: [block_mining]
+    reward_profile: none
+    display_profile: tool
+    progression_profile: default
+    stat_profile: tool
 
-  # Swords
   swords:
     materials:
       - WOODEN_SWORD
@@ -74,62 +57,52 @@ profiles:
       - COPPER_SWORD
       - DIAMOND_SWORD
       - NETHERITE_SWORD
-    trigger_profiles:
-      - combat
-    reward_profile: swords
-    display_profile: default
-    max_level: 100
+    trigger_profiles: [combat]
+    reward_profile: none
+    display_profile: weapon
+    progression_profile: default
+    stat_profile: melee_weapon
 
-  # Bows
   bows:
-    materials:
-      - BOW
-    trigger_profiles:
-      - combat
-    reward_profile: bows
-    display_profile: default
-    max_level: 100
+    materials: [BOW]
+    trigger_profiles: [combat]
+    reward_profile: none
+    display_profile: ranged_weapon
+    progression_profile: default
+    stat_profile: ranged_weapon
 
   crossbows:
-    materials:
-      - CROSSBOW
-    trigger_profiles:
-      - combat
-    reward_profile: crossbows
-    display_profile: default
-    max_level: 100
+    materials: [CROSSBOW]
+    trigger_profiles: [combat]
+    reward_profile: none
+    display_profile: ranged_weapon
+    progression_profile: default
+    stat_profile: ranged_weapon
 
-  # Fishing Rods
   fishing_rods:
-    materials:
-      - FISHING_ROD
-    trigger_profiles:
-      - fishing
-    reward_profile: fishing_rods
-    display_profile: default
-    max_level: 100
+    materials: [FISHING_ROD]
+    trigger_profiles: [fishing]
+    reward_profile: none
+    display_profile: utility
+    progression_profile: default
+    stat_profile: utility
 
   tridents:
-    materials:
-      - TRIDENT
-    trigger_profiles:
-      - combat
-    reward_profile: tridents
-    display_profile: default
-    max_level: 100
-
-
-  # Maces
-  maces:
-    materials:
-      - MACE
-    trigger_profiles:
-      - combat
+    materials: [TRIDENT]
+    trigger_profiles: [combat]
     reward_profile: none
-    display_profile: default
-    max_level: 100
+    display_profile: weapon
+    progression_profile: default
+    stat_profile: melee_weapon
 
-  # Spears
+  maces:
+    materials: [MACE]
+    trigger_profiles: [combat]
+    reward_profile: none
+    display_profile: weapon
+    progression_profile: default
+    stat_profile: melee_weapon
+
   spears:
     materials:
       - WOODEN_SPEAR
@@ -139,13 +112,12 @@ profiles:
       - GOLDEN_SPEAR
       - DIAMOND_SPEAR
       - NETHERITE_SPEAR
-    trigger_profiles:
-      - combat
+    trigger_profiles: [combat]
     reward_profile: none
-    display_profile: default
-    max_level: 100
+    display_profile: weapon
+    progression_profile: default
+    stat_profile: melee_weapon
 
-  # Wearable armor
   armor:
     materials:
       - LEATHER_HELMET
@@ -177,13 +149,12 @@ profiles:
       - NETHERITE_LEGGINGS
       - NETHERITE_BOOTS
       - TURTLE_HELMET
-    trigger_profiles:
-      - armor_durability
+    trigger_profiles: [armor_durability]
     reward_profile: none
-    display_profile: default
-    max_level: 100
+    display_profile: armor
+    progression_profile: default
+    stat_profile: armor
 
-  # Hoes
   hoes:
     materials:
       - WOODEN_HOE
@@ -193,15 +164,18 @@ profiles:
       - COPPER_HOE
       - DIAMOND_HOE
       - NETHERITE_HOE
-    trigger_profiles:
-      - farming
-    reward_profile: hoes
-    display_profile: default
-    max_level: 100
+    trigger_profiles: [farming]
+    reward_profile: none
+    display_profile: tool
+    progression_profile: default
+    stat_profile: tool
 
-  # Example: Inheritance
-  # netherite_pickaxes:
-  #   extends: pickaxes
-  #   materials:
-  #     - NETHERITE_PICKAXE
-  #   max_level: 150  # Override
+  # Custom profiles can reference any progression/stat/display profile.
+  # Example:
+  # custom_weapon:
+  #   materials: [NETHERITE_SWORD]
+  #   trigger_profiles: [combat]
+  #   reward_profile: none
+  #   display_profile: weapon
+  #   progression_profile: default
+  #   stat_profile: melee_weapon

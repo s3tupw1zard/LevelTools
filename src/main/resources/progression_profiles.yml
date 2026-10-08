@@ -1,0 +1,18 @@
+#
+# Progression Profiles
+# Level 1 is the baseline. Every level up to max_level is derived from this curve.
+#
+# max_level_influence:
+# 0.0 = roughly the same total XP regardless of level count
+# 0.5 = sublinear scaling (recommended)
+# 1.0 = total XP grows roughly linearly with level count
+#
+profiles:
+  default:
+    max_level: 100
+    xp:
+      reference_max_level: 100
+      first_level_xp: 100.0
+      final_level_xp: 10000.0
+      curve_exponent: 1.85
+      max_level_influence: 0.50

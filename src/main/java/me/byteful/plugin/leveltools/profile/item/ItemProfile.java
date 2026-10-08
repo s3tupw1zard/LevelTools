@@ -16,32 +16,11 @@ public final class ItemProfile {
     private final List<String> triggerProfileIds;
     private final String rewardProfileId;
     private final String displayProfileId;
-    private final int maxLevel;
-    private final String levelXpFormula;
+    private final String progressionProfileId;
+    private final String statProfileId;
+    private final int legacyMaxLevel;
+    private final String legacyLevelXpFormula;
     private final String extendsProfileId;
-
-    @Deprecated
-    public ItemProfile(
-            @NotNull String id,
-            @NotNull Set<Material> materials,
-            @NotNull String triggerProfileId,
-            @NotNull String rewardProfileId,
-            @NotNull String displayProfileId,
-            int maxLevel,
-            @Nullable String levelXpFormula,
-            @Nullable String extendsProfileId
-    ) {
-        this(
-                id,
-                materials,
-                Collections.singletonList(triggerProfileId),
-                rewardProfileId,
-                displayProfileId,
-                maxLevel,
-                levelXpFormula,
-                extendsProfileId
-        );
-    }
 
     public ItemProfile(
             @NotNull String id,
@@ -49,17 +28,22 @@ public final class ItemProfile {
             @NotNull List<String> triggerProfileIds,
             @NotNull String rewardProfileId,
             @NotNull String displayProfileId,
-            int maxLevel,
-            @Nullable String levelXpFormula,
+            @NotNull String progressionProfileId,
+            @NotNull String statProfileId,
+            int legacyMaxLevel,
+            @Nullable String legacyLevelXpFormula,
             @Nullable String extendsProfileId
     ) {
         this.id = id;
         this.materials = Collections.unmodifiableSet(materials);
-        this.triggerProfileIds = Collections.unmodifiableList(sanitizeTriggerProfileIds(triggerProfileIds));
+        this.triggerProfileIds =
+                Collections.unmodifiableList(sanitizeTriggerProfileIds(triggerProfileIds));
         this.rewardProfileId = rewardProfileId;
         this.displayProfileId = displayProfileId;
-        this.maxLevel = maxLevel;
-        this.levelXpFormula = levelXpFormula;
+        this.progressionProfileId = progressionProfileId;
+        this.statProfileId = statProfileId;
+        this.legacyMaxLevel = legacyMaxLevel;
+        this.legacyLevelXpFormula = legacyLevelXpFormula;
         this.extendsProfileId = extendsProfileId;
     }
 
@@ -82,13 +66,10 @@ public final class ItemProfile {
         return triggerProfileIds;
     }
 
-    /**
-     * @deprecated Use {@link #getTriggerProfileIds()} instead.
-     */
     @Deprecated
     @NotNull
     public String getTriggerProfileId() {
-        return triggerProfileIds.get(0);
+        return triggerProfileIds.getFirst();
     }
 
     @NotNull
@@ -101,13 +82,27 @@ public final class ItemProfile {
         return displayProfileId;
     }
 
+    @NotNull
+    public String getProgressionProfileId() {
+        return progressionProfileId;
+    }
+
+    @NotNull
+    public String getStatProfileId() {
+        return statProfileId;
+    }
+
+    /**
+     * Legacy fallback retained for external integrations during the 2026.1 transition.
+     * Core progression uses {@link #getProgressionProfileId()}.
+     */
     public int getMaxLevel() {
-        return maxLevel;
+        return legacyMaxLevel;
     }
 
     @Nullable
     public String getLevelXpFormula() {
-        return levelXpFormula;
+        return legacyLevelXpFormula;
     }
 
     @Nullable
@@ -116,7 +111,7 @@ public final class ItemProfile {
     }
 
     public boolean hasCustomXpFormula() {
-        return levelXpFormula != null && !levelXpFormula.isEmpty();
+        return legacyLevelXpFormula != null && !legacyLevelXpFormula.isEmpty();
     }
 
     public boolean extendsProfile() {
@@ -131,10 +126,12 @@ public final class ItemProfile {
         private final String id;
         private Set<Material> materials = Collections.emptySet();
         private List<String> triggerProfileIds = Collections.emptyList();
-        private String rewardProfileId;
+        private String rewardProfileId = "none";
         private String displayProfileId = "default";
-        private int maxLevel = 100;
-        private String levelXpFormula;
+        private String progressionProfileId = "default";
+        private String statProfileId = "none";
+        private int legacyMaxLevel = 100;
+        private String legacyLevelXpFormula;
         private String extendsProfileId;
 
         private Builder(@NotNull String id) {
@@ -167,13 +164,23 @@ public final class ItemProfile {
             return this;
         }
 
+        public Builder progressionProfile(@NotNull String progressionProfileId) {
+            this.progressionProfileId = progressionProfileId;
+            return this;
+        }
+
+        public Builder statProfile(@NotNull String statProfileId) {
+            this.statProfileId = statProfileId;
+            return this;
+        }
+
         public Builder maxLevel(int maxLevel) {
-            this.maxLevel = maxLevel;
+            this.legacyMaxLevel = maxLevel;
             return this;
         }
 
         public Builder levelXpFormula(@Nullable String levelXpFormula) {
-            this.levelXpFormula = levelXpFormula;
+            this.legacyLevelXpFormula = levelXpFormula;
             return this;
         }
 
@@ -189,8 +196,10 @@ public final class ItemProfile {
                     triggerProfileIds,
                     rewardProfileId,
                     displayProfileId,
-                    maxLevel,
-                    levelXpFormula,
+                    progressionProfileId,
+                    statProfileId,
+                    legacyMaxLevel,
+                    legacyLevelXpFormula,
                     extendsProfileId
             );
         }
@@ -198,13 +207,13 @@ public final class ItemProfile {
 
     @NotNull
     private static List<String> sanitizeTriggerProfileIds(@NotNull List<String> triggerProfileIds) {
-        LinkedHashSet<String> uniqueIds = new LinkedHashSet<>();
+        final LinkedHashSet<String> uniqueIds = new LinkedHashSet<>();
         for (String triggerProfileId : triggerProfileIds) {
             if (triggerProfileId == null) {
                 continue;
             }
 
-            String trimmed = triggerProfileId.trim();
+            final String trimmed = triggerProfileId.trim();
             if (!trimmed.isEmpty()) {
                 uniqueIds.add(trimmed);
             }

@@ -1,18 +1,19 @@
 #
-# Display Profiles - Define how leveled items look
+# Display Profiles
 #
-# Wiki: https://github.com/byteful/LevelTools/wiki/Display-Profiles
+# Common placeholders:
+# {level}, {max_level}, {xp}, {max_xp}, {xp_formatted}, {max_xp_formatted},
+# {progress_bar}, {item}
 #
-# Placeholders:
-# - {level}          : The item's level.
-# - {xp}             : The item's current XP.
-# - {max_xp}         : XP needed to reach next level.
-# - {xp_formatted}   : XP with K,M,B suffixes (e.g. 100K, 1M)
-# - {max_xp_formatted}: Max XP with suffixes.
-# - {progress_bar}   : Progress bar from progress_bar config.
-# - {item}           : Original item name.
+# Formula-stat placeholders:
+# {attack_damage}      estimated full-strength base attack after LevelTools scaling
+# {damage_bonus}       LevelTools damage bonus
+# {critical_chance}    LevelTools critical hit chance
+# {critical_damage}    bonus damage of a LevelTools critical hit
+# {defense}            LevelTools normal damage reduction
+# {critical_defense}   LevelTools reduction of critical bonus damage
+# {durability_bonus}   extra max durability
 #
-
 profiles:
   default:
     name:
@@ -25,11 +26,10 @@ profiles:
       enabled: true
       lines:
         - ""
-        - "&eLevel: &6{level}"
-        - ""
+        - "&eLevel: &6{level}&7/&6{max_level}"
         - "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
     progress_bar:
-      total_bars: 50
+      total_bars: 30
       bar_symbol: '|'
       prefix_symbol: '['
       suffix_symbol: ']'
@@ -37,3 +37,64 @@ profiles:
       suffix_color: '8'
       completed_color: 'e'
       placeholder_color: '7'
+
+  weapon:
+    extends: default
+    lore:
+      enabled: true
+      lines:
+        - ""
+        - "&eLevel: &6{level}&7/&6{max_level}"
+        - "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+        - ""
+        - "&cAttack: &f{attack_damage} &7({damage_bonus})"
+        - "&6Critical: &f{critical_chance} &7• &f+{critical_damage}"
+        - "&aDurability: &f+{durability_bonus}"
+
+  ranged_weapon:
+    extends: default
+    lore:
+      enabled: true
+      lines:
+        - ""
+        - "&eLevel: &6{level}&7/&6{max_level}"
+        - "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+        - ""
+        - "&cDamage: &f+{damage_bonus}"
+        - "&6Critical: &f{critical_chance} &7• &f+{critical_damage}"
+        - "&aDurability: &f+{durability_bonus}"
+
+  armor:
+    extends: default
+    lore:
+      enabled: true
+      lines:
+        - ""
+        - "&eLevel: &6{level}&7/&6{max_level}"
+        - "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+        - ""
+        - "&9Defense: &f{defense}"
+        - "&bCrit Defense: &f{critical_defense}"
+        - "&aDurability: &f+{durability_bonus}"
+
+  tool:
+    extends: default
+    lore:
+      enabled: true
+      lines:
+        - ""
+        - "&eLevel: &6{level}&7/&6{max_level}"
+        - "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+        - ""
+        - "&aDurability: &f+{durability_bonus}"
+
+  utility:
+    extends: default
+    lore:
+      enabled: true
+      lines:
+        - ""
+        - "&eLevel: &6{level}&7/&6{max_level}"
+        - "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+        - ""
+        - "&aDurability: &f+{durability_bonus}"

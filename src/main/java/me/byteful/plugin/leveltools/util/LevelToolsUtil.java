@@ -15,14 +15,21 @@ import me.byteful.plugin.leveltools.profile.ProfileManager;
 import me.byteful.plugin.leveltools.profile.display.DisplayProfile;
 import me.byteful.plugin.leveltools.profile.display.ProgressBarConfig;
 import me.byteful.plugin.leveltools.profile.item.ItemProfile;
+import me.byteful.plugin.leveltools.profile.progression.ProgressionProfile;
+import me.byteful.plugin.leveltools.profile.stat.CalculatedStats;
 import me.byteful.plugin.leveltools.profile.reward.RewardEntry;
 import me.byteful.plugin.leveltools.profile.reward.RewardProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemType;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -35,6 +42,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -191,13 +199,49 @@ public final class LevelToolsUtil {
         return bd.intValue();
     }
 
-    public static double getMaxXp(@Nullable Player player, @Nullable ItemProfile itemProfile, @NotNull LevelToolsItem tool) {
-        LevelToolsPlugin instance = LevelToolsPlugin.getInstance();
+    public static double getMaxXp(
+            @Nullable Player player,
+            @Nullable ItemProfile itemProfile,
+            @NotNull LevelToolsItem tool
+    ) {
+        final ProgressionProfile progression = getProgressionProfile(itemProfile);
+        if (progression != null) {
+            return progression.xpRequiredForLevel(tool.getLevel());
+        }
+
+        final LevelToolsPlugin instance = LevelToolsPlugin.getInstance();
         if (instance == null || instance.getXpFormulaRegistry() == null) {
             return tool.getMaxXp();
         }
 
         return instance.getXpFormulaRegistry().evaluateMaxXp(player, itemProfile, tool.getLevel());
+    }
+
+    public static int getMaxLevel(@Nullable ItemProfile itemProfile) {
+        final ProgressionProfile progression = getProgressionProfile(itemProfile);
+        return progression == null ? 100 : progression.getMaxLevel();
+    }
+
+    @Nullable
+    public static ProgressionProfile getProgressionProfile(@Nullable ItemProfile itemProfile) {
+        final LevelToolsPlugin instance = LevelToolsPlugin.getInstance();
+        if (instance == null || itemProfile == null || instance.getProfileManager() == null) {
+            return null;
+        }
+        return instance.getProfileManager().getProgressionProfileFor(itemProfile);
+    }
+
+    @NotNull
+    public static CalculatedStats calculateStats(
+            @NotNull ItemStack item,
+            @Nullable ItemProfile itemProfile,
+            int level
+    ) {
+        final LevelToolsPlugin instance = LevelToolsPlugin.getInstance();
+        if (instance == null || instance.getStatCalculator() == null) {
+            return CalculatedStats.empty();
+        }
+        return instance.getStatCalculator().calculate(item, itemProfile, level);
     }
 
     @NotNull
@@ -224,12 +268,25 @@ public final class LevelToolsUtil {
         final int level = tool.getLevel();
         final double xp = tool.getXp();
         final int lastHandledReward = tool.getLastHandledReward();
+        final String itemId = pdcItem.getItemId();
 
         pdcItem.setStack(stack);
+        pdcItem.setItemId(itemId);
         tool.setLevel(level);
         tool.setXp(xp);
         tool.setLastHandledReward(lastHandledReward);
         return true;
+    }
+
+    @Nullable
+    public static String getStoredItemId(@NotNull ItemStack stack) {
+        final ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return null;
+        }
+
+        return meta.getPersistentDataContainer()
+                .get(PDCLevelToolsItem.ITEM_ID_KEY, PersistentDataType.STRING);
     }
 
     public static LevelToolsItem createLevelToolsItem(@NotNull ItemStack stack) {
@@ -391,18 +448,25 @@ public final class LevelToolsUtil {
             ItemStack stack, ItemMeta meta, Map<Enchantment, Integer> enchantments, int level, double xp,
             double maxXp) {
         final DisplayProfile displayProfile = getDisplayProfileForMaterial(stack.getType());
-        final String progressBar = createProgressBar(xp, maxXp, displayProfile);
+        final ItemProfile itemProfile = getItemProfile(stack.getType());
+        final int maxLevel = getMaxLevel(itemProfile);
+        final double displayXp = level >= maxLevel ? maxXp : xp;
+        final String progressBar = createProgressBar(displayXp, maxXp, displayProfile);
+        final CalculatedStats stats = calculateStats(stack, itemProfile, level);
 
         if (displayProfile != null) {
             DisplayProfile.NameDisplay nameDisplay = displayProfile.getNameDisplay();
             if (nameDisplay.isEnabled()) {
-                final String text = colorize(nameDisplay.getText()
-                        .replace("{level}", String.valueOf(level))
-                        .replace("{xp}", String.valueOf(xp))
-                        .replace("{max_xp}", String.valueOf(maxXp))
-                        .replace("{max_xp_formatted}", formatMoney(maxXp))
-                        .replace("{xp_formatted}", formatMoney(xp))
-                        .replace("{progress_bar}", progressBar));
+                final String text = colorize(replaceDisplayPlaceholders(
+                        nameDisplay.getText(),
+                        stack,
+                        level,
+                        maxLevel,
+                        displayXp,
+                        maxXp,
+                        progressBar,
+                        stats
+                ));
 
                 if (nameDisplay.getText().contains("{item}")
                         && supportsTranslatableItemDisplayNames()
@@ -417,13 +481,16 @@ public final class LevelToolsUtil {
             if (loreDisplay.isEnabled()) {
                 List<String> lines = loreDisplay.getLines().stream()
                         .map(str -> LORE_PREFIX + str)
-                        .map(str -> colorize(
-                                str.replace("{level}", String.valueOf(level))
-                                        .replace("{xp}", String.valueOf(xp))
-                                        .replace("{max_xp}", String.valueOf(maxXp))
-                                        .replace("{progress_bar}", progressBar))
-                                .replace("{max_xp_formatted}", formatMoney(maxXp))
-                                .replace("{xp_formatted}", formatMoney(xp)))
+                        .map(str -> colorize(replaceDisplayPlaceholders(
+                                str,
+                                stack,
+                                level,
+                                maxLevel,
+                                displayXp,
+                                maxXp,
+                                progressBar,
+                                stats
+                        )))
                         .collect(Collectors.toList());
                 smartSetLore(meta, lines);
             }
@@ -435,6 +502,104 @@ public final class LevelToolsUtil {
         if (LevelToolsPlugin.getInstance().getConfigManager().getSettings().isHideAttributes()) {
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         }
+    }
+
+    public static void applyCalculatedDurability(
+            @NotNull ItemStack stack,
+            @NotNull ItemMeta meta,
+            int level
+    ) {
+        if (!(meta instanceof Damageable damageable)) {
+            return;
+        }
+
+        final int vanillaMaxDamage = stack.getType().getMaxDurability();
+        if (vanillaMaxDamage <= 0) {
+            return;
+        }
+
+        final ItemProfile itemProfile = getItemProfile(stack.getType());
+        final CalculatedStats stats = calculateStats(stack, itemProfile, level);
+        final int oldMaxDamage =
+                damageable.hasMaxDamage() ? damageable.getMaxDamage() : vanillaMaxDamage;
+        final int oldDamage = damageable.getDamage();
+        final double wearRatio = oldMaxDamage <= 0
+                ? 0.0
+                : Math.max(0.0, Math.min(1.0, oldDamage / (double) oldMaxDamage));
+        final int newMaxDamage = Math.max(
+                1,
+                (int) Math.round(vanillaMaxDamage * (1.0 + stats.durabilityBonus()))
+        );
+
+        damageable.setMaxDamage(newMaxDamage);
+        damageable.setDamage(
+                Math.min(newMaxDamage - 1, (int) Math.round(wearRatio * newMaxDamage))
+        );
+    }
+
+    @NotNull
+    private static String replaceDisplayPlaceholders(
+            @NotNull String template,
+            @NotNull ItemStack stack,
+            int level,
+            int maxLevel,
+            double xp,
+            double maxXp,
+            @NotNull String progressBar,
+            @NotNull CalculatedStats stats
+    ) {
+        return template
+                .replace("{level}", String.valueOf(level))
+                .replace("{max_level}", String.valueOf(maxLevel))
+                .replace("{xp}", String.valueOf(xp))
+                .replace("{max_xp}", String.valueOf(maxXp))
+                .replace("{xp_formatted}", formatMoney(xp))
+                .replace("{max_xp_formatted}", formatMoney(maxXp))
+                .replace("{progress_bar}", progressBar)
+                .replace("{attack_damage}", formatDecimal(calculateAttackDamage(stack, stats)))
+                .replace("{damage_bonus}", formatPercent(stats.damageBonus()))
+                .replace("{critical_chance}", formatPercent(stats.criticalChance()))
+                .replace("{critical_damage}", formatPercent(stats.criticalDamage()))
+                .replace("{defense}", formatPercent(stats.defense()))
+                .replace("{critical_defense}", formatPercent(stats.criticalDefense()))
+                .replace("{durability_bonus}", formatPercent(stats.durabilityBonus()));
+    }
+
+    private static double calculateAttackDamage(
+            @NotNull ItemStack stack,
+            @NotNull CalculatedStats stats
+    ) {
+        final ItemType itemType = stack.getType().asItemType();
+        if (itemType == null) {
+            return 0.0;
+        }
+
+        double base = 1.0;
+        double addScalar = 0.0;
+        double multiply = 1.0;
+
+        for (AttributeModifier modifier
+                : itemType.getDefaultAttributeModifiers(EquipmentSlot.HAND)
+                        .get(Attribute.ATTACK_DAMAGE)) {
+            switch (modifier.getOperation()) {
+                case ADD_NUMBER -> base += modifier.getAmount();
+                case ADD_SCALAR -> addScalar += modifier.getAmount();
+                case MULTIPLY_SCALAR_1 -> multiply *= 1.0 + modifier.getAmount();
+            }
+        }
+
+        return Math.max(0.0, base * (1.0 + addScalar) * multiply
+                * (1.0 + stats.damageBonus()));
+    }
+
+    @NotNull
+    private static String formatPercent(double value) {
+        return String.format(Locale.ROOT, "%.1f%%", value * 100.0);
+    }
+
+    @NotNull
+    private static String formatDecimal(double value) {
+        return String.format(Locale.ROOT, "%.2f", value);
     }
 
     @Nullable

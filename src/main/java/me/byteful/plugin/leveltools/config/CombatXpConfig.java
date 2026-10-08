@@ -191,6 +191,7 @@ public final class CombatXpConfig {
                             entityType.trim().toUpperCase(Locale.ROOT),
                             new Rule(
                                     Math.max(1.0, rule.getDouble("max_multiplier", 1.0)),
+                                    Math.max(0.0, rule.getDouble("curve_exponent", 0.0)),
                                     Math.max(0L, rule.getLong("claim_interval_seconds", 0L)) * 1000L,
                                     Math.max(1, rule.getInt("minimum_level", 1)),
                                     Math.max(0, rule.getInt("required_leveltools_critical_hits", 0))
@@ -228,8 +229,12 @@ public final class CombatXpConfig {
                 double criticalDamageShare
         ) {
             final double progress = clamp(normalizedProgress, 0.0, 1.0);
+            final double effectiveCurveExponent =
+                    rule.curveExponent() > 0.0 ? rule.curveExponent() : curveExponent;
             final double levelMultiplier =
-                    1.0 + (rule.maxMultiplier() - 1.0) * Math.pow(progress, curveExponent);
+                    1.0
+                            + (rule.maxMultiplier() - 1.0)
+                            * Math.pow(progress, effectiveCurveExponent);
             return levelMultiplier * criticalDamageBonus.multiplier(criticalDamageShare);
         }
     }
@@ -270,6 +275,7 @@ public final class CombatXpConfig {
 
     public record Rule(
             double maxMultiplier,
+            double curveExponent,
             long claimIntervalMillis,
             int minimumLevel,
             int requiredCriticalHits

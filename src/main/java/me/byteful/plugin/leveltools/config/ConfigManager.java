@@ -1,8 +1,11 @@
 package me.byteful.plugin.leveltools.config;
 
-import com.cryptomorin.xseries.XSound;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import me.byteful.plugin.leveltools.LevelToolsPlugin;
 import me.byteful.plugin.leveltools.config.migration.ConfigMigrator;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -18,6 +21,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -228,8 +232,13 @@ public final class ConfigManager {
                 return null;
             }
 
-            XSound parsed = XSound.matchXSound(name).orElse(null);
-            Sound sound = parsed != null && parsed.isSupported() ? parsed.parseSound() : null;
+            final String normalized = name.trim().toLowerCase(Locale.ROOT);
+            final NamespacedKey soundKey = normalized.contains(":")
+                    ? NamespacedKey.fromString(normalized)
+                    : NamespacedKey.minecraft(normalized.replace('_', '.'));
+            final Registry<Sound> soundRegistry =
+                    RegistryAccess.registryAccess().getRegistry(RegistryKey.SOUND_EVENT);
+            final Sound sound = soundKey == null ? null : soundRegistry.get(soundKey);
             if (sound == null) {
                 logger.warning("The level_up_sound '" + name + "' is unknown or unsupported on this server version. Please fix your configuration.");
                 return null;

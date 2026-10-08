@@ -149,31 +149,37 @@ combat:
     mobs:
       PIGLIN_BRUTE:
         max_multiplier: 1.25
+        curve_exponent: 1.35
         claim_interval_seconds: 300
         minimum_level: 20
         required_leveltools_critical_hits: 0
       RAVAGER:
         max_multiplier: 1.35
+        curve_exponent: 1.30
         claim_interval_seconds: 300
         minimum_level: 20
         required_leveltools_critical_hits: 0
       ELDER_GUARDIAN:
         max_multiplier: 1.50
+        curve_exponent: 1.25
         claim_interval_seconds: 600
         minimum_level: 20
         required_leveltools_critical_hits: 0
       WARDEN:
         max_multiplier: 2.25
+        curve_exponent: 1.10
         claim_interval_seconds: 1800
         minimum_level: 20
         required_leveltools_critical_hits: 0
       WITHER:
         max_multiplier: 1.90
+        curve_exponent: 1.20
         claim_interval_seconds: 1200
         minimum_level: 20
         required_leveltools_critical_hits: 0
       ENDER_DRAGON:
         max_multiplier: 2.10
+        curve_exponent: 1.15
         claim_interval_seconds: 3600
         minimum_level: 20
         required_leveltools_critical_hits: 0

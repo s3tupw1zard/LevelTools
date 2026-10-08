@@ -4,6 +4,8 @@ import me.byteful.plugin.leveltools.config.XpFormulaRegistry;
 import me.byteful.plugin.leveltools.profile.display.DisplayProfile;
 import me.byteful.plugin.leveltools.profile.item.ItemProfile;
 import me.byteful.plugin.leveltools.profile.reward.RewardProfile;
+import me.byteful.plugin.leveltools.profile.progression.ProgressionProfile;
+import me.byteful.plugin.leveltools.profile.stat.StatProfile;
 import me.byteful.plugin.leveltools.profile.trigger.TriggerProfile;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
@@ -23,13 +25,23 @@ public final class ProfileValidator {
             @NotNull Map<String, TriggerProfile> triggerProfiles,
             @NotNull Map<String, RewardProfile> rewardProfiles,
             @NotNull Map<String, DisplayProfile> displayProfiles,
-            @NotNull Map<String, ItemProfile> itemProfiles
+            @NotNull Map<String, ItemProfile> itemProfiles,
+            @NotNull Map<String, ProgressionProfile> progressionProfiles,
+            @NotNull Map<String, StatProfile> statProfiles
     ) {
         List<String> errors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
         validateDuplicateMaterials(itemProfiles, errors);
-        validateProfileReferences(itemProfiles, triggerProfiles, rewardProfiles, displayProfiles, errors);
+        validateProfileReferences(
+                itemProfiles,
+                triggerProfiles,
+                rewardProfiles,
+                displayProfiles,
+                progressionProfiles,
+                statProfiles,
+                errors
+        );
         validateItemXpFormulas(itemProfiles, errors);
         validateEmptyProfiles(itemProfiles, warnings);
 
@@ -59,6 +71,8 @@ public final class ProfileValidator {
             @NotNull Map<String, TriggerProfile> triggerProfiles,
             @NotNull Map<String, RewardProfile> rewardProfiles,
             @NotNull Map<String, DisplayProfile> displayProfiles,
+            @NotNull Map<String, ProgressionProfile> progressionProfiles,
+            @NotNull Map<String, StatProfile> statProfiles,
             @NotNull List<String> errors
     ) {
         for (ItemProfile itemProfile : itemProfiles.values()) {
@@ -76,6 +90,18 @@ public final class ProfileValidator {
             String displayId = itemProfile.getDisplayProfileId();
             if (!displayProfiles.containsKey(displayId)) {
                 errors.add("Item profile '" + itemProfile.getId() + "' references unknown display profile: '" + displayId + "'");
+            }
+
+            String progressionId = itemProfile.getProgressionProfileId();
+            if (!progressionProfiles.containsKey(progressionId)) {
+                errors.add("Item profile '" + itemProfile.getId()
+                        + "' references unknown progression profile: '" + progressionId + "'");
+            }
+
+            String statId = itemProfile.getStatProfileId();
+            if (!statProfiles.containsKey(statId)) {
+                errors.add("Item profile '" + itemProfile.getId()
+                        + "' references unknown stat profile: '" + statId + "'");
             }
         }
     }

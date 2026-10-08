@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.NotNull;
 import revxrsal.commands.annotation.*;
 import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 import revxrsal.commands.command.ExecutableCommand;
@@ -79,23 +80,22 @@ public class LevelToolsCommand {
 
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(hand);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(hand.getType());
-            tool.setLevel(0);
+            tool.setLevel(1);
             tool.setXp(0);
             LevelToolsUtil.setHand(target, LevelToolsUtil.getItemStack(tool, target, itemProfile));
-            sender.sendMessage(
-                    colorize(
-                            plugin
-                                    .getConfig()
-                                    .getString(
-                                            "messages.successfully_reset_hand_tool",
-                                            "&aSuccessfully reset tool in hand's XP/Levels for {player}.")
-                                    .replace("{player}", target.getName())));
+            sender.sendMessage(colorize(message(
+                    "messages.successfully_reset_hand_tool",
+                    "&aReset {item} for {player} to level 1 with 0 XP."
+            )
+                    .replace("{item}", LevelToolsUtil.getReadableItemName(hand))
+                    .replace("{player}", target.getName())));
 
             return;
         }
 
         final PlayerInventory inv = target.getInventory();
         final ItemStack[] contents = inv.getContents();
+        int resetCount = 0;
         for (int i = 0; i < contents.length; i++) {
             final ItemStack item = contents[i];
             if (item == null || !LevelToolsUtil.isSupportedTool(item.getType())) {
@@ -103,15 +103,17 @@ public class LevelToolsCommand {
             }
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
-            tool.setLevel(0);
+            tool.setLevel(1);
             tool.setXp(0);
             inv.setItem(i, LevelToolsUtil.getItemStack(tool, target, itemProfile));
+            resetCount++;
         }
-        sender.sendMessage(
-                colorize(
-                        Objects.requireNonNull(
-                                        plugin.getConfig().getString("messages.successfully_reset_tools"))
-                                .replace("{player}", target.getName())));
+        sender.sendMessage(colorize(message(
+                "messages.successfully_reset_tools",
+                "&aReset {count} LevelTools item(s) for {player} to level 1 with 0 XP."
+        )
+                .replace("{count}", String.valueOf(resetCount))
+                .replace("{player}", target.getName())));
     }
 
     @Subcommand("xp")
@@ -128,10 +130,12 @@ public class LevelToolsCommand {
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             tool.setXp(xp);
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
-            player.sendMessage(
-                    colorize(
-                            Objects.requireNonNull(
-                                    plugin.getConfig().getString("messages.successfully_executed_action"))));
+            player.sendMessage(colorize(message(
+                    "messages.successfully_set_xp",
+                    "&aSet {item} XP to {xp}."
+            )
+                    .replace("{item}", LevelToolsUtil.getReadableItemName(item))
+                    .replace("{xp}", String.valueOf(tool.getXp()))));
         } else {
             player.sendMessage(
                     colorize(Objects.requireNonNull(plugin.getConfig().getString("messages.item_not_tool"))));
@@ -151,16 +155,22 @@ public class LevelToolsCommand {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             final int initial = tool.getLevel();
-            final int targetLevel = Math.max(0, Math.min(level, itemProfile.getMaxLevel()));
+            final int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
+            final int targetLevel = Math.max(1, Math.min(level, maxLevel));
             tool.setLevel(targetLevel);
+            if (targetLevel >= maxLevel) {
+                tool.setXp(0.0);
+            }
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
             if (initial != tool.getLevel()) {
                 LevelToolsUtil.handleReward(tool, player);
             }
-            player.sendMessage(
-                    colorize(
-                            Objects.requireNonNull(
-                                    plugin.getConfig().getString("messages.successfully_executed_action"))));
+            player.sendMessage(colorize(message(
+                    "messages.successfully_set_level",
+                    "&aSet {item} to level {level}."
+            )
+                    .replace("{item}", LevelToolsUtil.getReadableItemName(item))
+                    .replace("{level}", String.valueOf(tool.getLevel()))));
         } else {
             player.sendMessage(
                     colorize(Objects.requireNonNull(plugin.getConfig().getString("messages.item_not_tool"))));
@@ -180,15 +190,29 @@ public class LevelToolsCommand {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             final int initial = tool.getLevel();
-            tool.setLevel(Math.min(initial + 1, itemProfile.getMaxLevel()));
-            LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
-            if (initial != tool.getLevel()) {
-                LevelToolsUtil.handleReward(tool, player);
+            final int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
+            if (initial >= maxLevel) {
+                player.sendMessage(colorize(message(
+                        "messages.already_max_level",
+                        "&e{item} is already at the maximum level ({level})."
+                )
+                        .replace("{item}", LevelToolsUtil.getReadableItemName(item))
+                        .replace("{level}", String.valueOf(maxLevel))));
+                return;
             }
-            player.sendMessage(
-                    colorize(
-                            Objects.requireNonNull(
-                                    plugin.getConfig().getString("messages.successfully_executed_action"))));
+
+            tool.setLevel(initial + 1);
+            if (tool.getLevel() >= maxLevel) {
+                tool.setXp(0.0);
+            }
+            LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
+            LevelToolsUtil.handleReward(tool, player);
+            player.sendMessage(colorize(message(
+                    "messages.successfully_level_up",
+                    "&aIncreased {item} to level {level}."
+            )
+                    .replace("{item}", LevelToolsUtil.getReadableItemName(item))
+                    .replace("{level}", String.valueOf(tool.getLevel()))));
         } else {
             player.sendMessage(
                     colorize(Objects.requireNonNull(plugin.getConfig().getString("messages.item_not_tool"))));
@@ -209,6 +233,10 @@ public class LevelToolsCommand {
         sender.sendMessage("- Plugin Version: " + plugin.getPluginMeta().getVersion());
         sender.sendMessage("- Latest Version: " + plugin.getUpdateChecker().getLastCheckedVersion());
         sender.sendMessage("{!} Please include your configuration when opening an issue at https://github.com/s3tupw1zard/LevelTools/issues. {!}");
+    }
+
+    private String message(@NotNull String path, @NotNull String fallback) {
+        return plugin.getConfig().getString(path, fallback);
     }
 
     private boolean checkPerm(CommandSender sender) {

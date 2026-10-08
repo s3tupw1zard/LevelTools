@@ -1,0 +1,34 @@
+#
+# Optional LevelTools stat contributions from enchantments already on an item.
+# Vanilla enchantment behavior remains intact. These bonuses are intentionally small.
+#
+enchantments:
+  minecraft:sharpness:
+    stats:
+      damage:
+        per_level: 0.015
+        cap: 0.075
+
+  minecraft:power:
+    stats:
+      damage:
+        per_level: 0.015
+        cap: 0.075
+
+  minecraft:unbreaking:
+    stats:
+      durability:
+        per_level: 0.02
+        cap: 0.10
+
+  minecraft:protection:
+    stats:
+      defense:
+        per_level: 0.005
+        cap: 0.025
+
+  minecraft:projectile_protection:
+    stats:
+      defense:
+        per_level: 0.004
+        cap: 0.02

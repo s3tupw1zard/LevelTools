@@ -1,32 +1,14 @@
 #
-# Trigger Profiles - Define how XP is gained
+# Trigger Profiles - define WHEN and WHERE XP can be gained.
+# XP amounts live in xp_sources.yml.
 #
-# Wiki: https://github.com/byteful/LevelTools/wiki/Trigger-Profiles
+# Trigger Types:
+# BLOCK_BREAK, ENTITY_KILL, FISHING, RIGHT_CLICK, LEFT_CLICK,
+# CONSUME, FARMING, ARMOR_DURABILITY
 #
-# Trigger Types: BLOCK_BREAK, ENTITY_KILL, FISHING, RIGHT_CLICK, LEFT_CLICK, CONSUME, FARMING, ARMOR_DURABILITY
-#
-# Each trigger profile can be reused by multiple item profiles.
-# Optional: slots can restrict where an item must be equipped.
-# Slot names must match: HELMET, CHESTPLATE, LEGGINGS, BOOTS, HAND, OFF_HAND
-# Omit slots (or keep it empty) to allow matching from all slots.
-#
-
-#
-# Want more trigger types? Contact me here: https://discord.gg/G8BDgqsuyw
-#
-
 profiles:
-  # Block breaking trigger - shared by pickaxes, axes, shovels
   block_mining:
     type: BLOCK_BREAK
-    xp_modifier:
-      default:
-        min: 0.5
-        max: 1.5
-      custom:
-        DIAMOND_ORE:
-          min: 5.0
-          max: 10.0
     filter:
       type: BLACKLIST
       list:
@@ -45,54 +27,20 @@ profiles:
         - "SUNFLOWER"
         - "CORNFLOWER"
 
-  # Entity killing trigger - shared by swords, bows, crossbows, tridents
+  # Combat XP is handled by the damage-contribution engine in xp_sources.yml.
   combat:
     type: ENTITY_KILL
-    xp_modifier:
-      default:
-        min: 1.0
-        max: 2.5
-      custom:
-        BLAZE:
-          min: 5.0
-          max: 7.5
     filter:
       type: BLACKLIST
       list:
         - "PLAYER"
 
-  # Fishing trigger - for fishing rods
-  # Uses material-based filtering like other triggers.
-  # The filter applies to the caught item's material type.
   fishing:
     type: FISHING
-    xp_modifier:
-      default:
-        min: 1.0
-        max: 5.0
-      custom:
-        # Fish items give standard XP
-        COD:
-          min: 1.0
-          max: 2.0
     filter:
-      # Blacklist junk items that shouldn't give XP
       type: BLACKLIST
       list: []
 
-  # Example right-click trigger
-  # right_click_any:
-  #   type: RIGHT_CLICK
-  #   slots:
-  #     - HAND
-  #   xp_modifier:
-  #     default:
-  #       min: 0.5
-  #       max: 1.0
-  #   # Click modes: ANY, ON_BLOCK, ON_ENTITY, ON_AIR
-  #   click_mode: ANY
-
-  # Armor durability trigger - awards XP when equipped armor loses durability
   armor_durability:
     type: ARMOR_DURABILITY
     slots:
@@ -100,63 +48,12 @@ profiles:
       - CHESTPLATE
       - LEGGINGS
       - BOOTS
-    xp_modifier:
-      default:
-        min: 0.5
-        max: 1.0
     filter:
       type: BLACKLIST
       list: []
 
-  # Example consume trigger
-  # food_consumption:
-  #   type: CONSUME
-  #   xp_modifier:
-  #     default:
-  #       min: 1.0
-  #       max: 1.5
-
-  # Farming trigger - for hoes
-  # Handles tilling soil and harvesting mature crops
   farming:
     type: FARMING
-    xp_modifier:
-      default:
-        min: 1.0
-        max: 2.0
-      custom:
-        # Tilling soil
-        TILL:
-          min: 0.5
-          max: 1.0
-        # High-value crops
-        WHEAT:
-          min: 1.0
-          max: 2.0
-        CARROTS:
-          min: 1.0
-          max: 2.0
-        POTATOES:
-          min: 1.0
-          max: 2.0
-        BEETROOTS:
-          min: 1.5
-          max: 2.5
-        NETHER_WART:
-          min: 2.0
-          max: 3.0
-        MELON:
-          min: 1.5
-          max: 2.5
-        PUMPKIN:
-          min: 1.5
-          max: 2.5
-        COCOA:
-          min: 1.5
-          max: 2.5
-        SWEET_BERRY_BUSH:
-          min: 1.0
-          max: 1.5
     filter:
       type: WHITELIST
       list:
@@ -177,3 +74,6 @@ profiles:
         - "KELP_PLANT"
         - "BROWN_MUSHROOM"
         - "RED_MUSHROOM"
+
+  # Custom profiles remain possible. If no matching source entry exists in
+  # xp_sources.yml, legacy xp_modifier values in a custom trigger profile still work.

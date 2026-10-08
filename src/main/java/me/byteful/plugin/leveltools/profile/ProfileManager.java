@@ -8,6 +8,10 @@ import me.byteful.plugin.leveltools.profile.item.ItemProfile;
 import me.byteful.plugin.leveltools.profile.item.ItemProfileLoader;
 import me.byteful.plugin.leveltools.profile.reward.RewardProfile;
 import me.byteful.plugin.leveltools.profile.reward.RewardProfileLoader;
+import me.byteful.plugin.leveltools.profile.progression.ProgressionProfile;
+import me.byteful.plugin.leveltools.profile.progression.ProgressionProfileLoader;
+import me.byteful.plugin.leveltools.profile.stat.StatProfile;
+import me.byteful.plugin.leveltools.profile.stat.StatProfileLoader;
 import me.byteful.plugin.leveltools.profile.trigger.TriggerProfile;
 import me.byteful.plugin.leveltools.profile.trigger.TriggerProfileLoader;
 import org.bukkit.Material;
@@ -26,11 +30,15 @@ public final class ProfileManager {
     private final RewardProfileLoader rewardLoader;
     private final DisplayProfileLoader displayLoader;
     private final ItemProfileLoader itemLoader;
+    private final ProgressionProfileLoader progressionLoader;
+    private final StatProfileLoader statLoader;
 
     private volatile Map<String, TriggerProfile> triggerProfiles = new ConcurrentHashMap<>();
     private volatile Map<String, RewardProfile> rewardProfiles = new ConcurrentHashMap<>();
     private volatile Map<String, DisplayProfile> displayProfiles = new ConcurrentHashMap<>();
     private volatile Map<String, ItemProfile> itemProfiles = new ConcurrentHashMap<>();
+    private volatile Map<String, ProgressionProfile> progressionProfiles = new ConcurrentHashMap<>();
+    private volatile Map<String, StatProfile> statProfiles = new ConcurrentHashMap<>();
     private volatile Map<Material, ItemProfile> materialToProfile = new ConcurrentHashMap<>();
 
     private final Set<String> externalTriggerProfiles = ConcurrentHashMap.newKeySet();
@@ -45,13 +53,17 @@ public final class ProfileManager {
         this.rewardLoader = new RewardProfileLoader(logger);
         this.displayLoader = new DisplayProfileLoader(logger);
         this.itemLoader = new ItemProfileLoader(logger);
+        this.progressionLoader = new ProgressionProfileLoader(logger);
+        this.statLoader = new StatProfileLoader(logger);
     }
 
     public void load(
             @NotNull FileConfiguration triggerConfig,
             @NotNull FileConfiguration rewardConfig,
             @NotNull FileConfiguration displayConfig,
-            @NotNull FileConfiguration itemConfig
+            @NotNull FileConfiguration itemConfig,
+            @NotNull FileConfiguration progressionConfig,
+            @NotNull FileConfiguration statConfig
     ) {
         Map<String, TriggerProfile> savedExtTrigger = new HashMap<>();
         Map<String, RewardProfile> savedExtReward = new HashMap<>();
@@ -79,9 +91,17 @@ public final class ProfileManager {
         Map<String, RewardProfile> newRewardProfiles = rewardLoader.load(rewardConfig);
         Map<String, DisplayProfile> newDisplayProfiles = displayLoader.load(displayConfig);
         Map<String, ItemProfile> newItemProfiles = itemLoader.load(itemConfig);
+        Map<String, ProgressionProfile> newProgressionProfiles =
+                progressionLoader.load(progressionConfig);
+        Map<String, StatProfile> newStatProfiles = statLoader.load(statConfig);
 
         ProfileValidator.ValidationResult result = validator.validate(
-                newTriggerProfiles, newRewardProfiles, newDisplayProfiles, newItemProfiles
+                newTriggerProfiles,
+                newRewardProfiles,
+                newDisplayProfiles,
+                newItemProfiles,
+                newProgressionProfiles,
+                newStatProfiles
         );
 
         result.logTo(logger);
@@ -101,6 +121,8 @@ public final class ProfileManager {
         this.rewardProfiles = new ConcurrentHashMap<>(newRewardProfiles);
         this.displayProfiles = new ConcurrentHashMap<>(newDisplayProfiles);
         this.itemProfiles = new ConcurrentHashMap<>(newItemProfiles);
+        this.progressionProfiles = new ConcurrentHashMap<>(newProgressionProfiles);
+        this.statProfiles = new ConcurrentHashMap<>(newStatProfiles);
         this.materialToProfile = new ConcurrentHashMap<>(newMaterialToProfile);
 
         logger.info("Profile system initialized successfully.");
@@ -125,6 +147,8 @@ public final class ProfileManager {
         this.rewardProfiles = new ConcurrentHashMap<>();
         this.displayProfiles = new ConcurrentHashMap<>();
         this.itemProfiles = new ConcurrentHashMap<>();
+        this.progressionProfiles = new ConcurrentHashMap<>();
+        this.statProfiles = new ConcurrentHashMap<>();
         this.materialToProfile = new ConcurrentHashMap<>();
         this.externalTriggerProfiles.clear();
         this.externalRewardProfiles.clear();
@@ -260,6 +284,26 @@ public final class ProfileManager {
             default:
                 return false;
         }
+    }
+
+    @Nullable
+    public ProgressionProfile getProgressionProfileFor(@NotNull ItemProfile itemProfile) {
+        return progressionProfiles.get(itemProfile.getProgressionProfileId());
+    }
+
+    @Nullable
+    public StatProfile getStatProfileFor(@NotNull ItemProfile itemProfile) {
+        return statProfiles.get(itemProfile.getStatProfileId());
+    }
+
+    @Nullable
+    public ProgressionProfile getProgressionProfile(@NotNull String id) {
+        return progressionProfiles.get(id);
+    }
+
+    @Nullable
+    public StatProfile getStatProfile(@NotNull String id) {
+        return statProfiles.get(id);
     }
 
     @Nullable

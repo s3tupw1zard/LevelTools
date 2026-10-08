@@ -1,0 +1,68 @@
+#
+# Stat Profiles
+# Values are fractional bonuses. Example: damage.max = 2.0 means +200%.
+#
+profiles:
+  none: {}
+
+  melee_weapon:
+    damage:
+      start: 0.0
+      max: 3.0
+      exponent: 1.15
+    critical_chance:
+      start: 0.005
+      max: 0.15
+      exponent: 1.30
+    critical_damage:
+      start: 0.005
+      max: 0.75
+      exponent: 1.20
+    durability:
+      start: 0.0
+      max: 1.0
+      exponent: 1.10
+
+  ranged_weapon:
+    damage:
+      start: 0.0
+      max: 2.25
+      exponent: 1.20
+    critical_chance:
+      start: 0.005
+      max: 0.12
+      exponent: 1.30
+    critical_damage:
+      start: 0.005
+      max: 0.60
+      exponent: 1.20
+    durability:
+      start: 0.0
+      max: 0.75
+      exponent: 1.10
+
+  tool:
+    durability:
+      start: 0.0
+      max: 1.0
+      exponent: 1.10
+
+  armor:
+    defense:
+      start: 0.0
+      max: 0.10
+      exponent: 1.20
+    critical_defense:
+      start: 0.0
+      max: 0.125
+      exponent: 1.25
+    durability:
+      start: 0.0
+      max: 1.0
+      exponent: 1.10
+
+  utility:
+    durability:
+      start: 0.0
+      max: 0.75
+      exponent: 1.10

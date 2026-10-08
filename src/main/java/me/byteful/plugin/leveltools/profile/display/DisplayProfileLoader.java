@@ -3,10 +3,13 @@ package me.byteful.plugin.leveltools.profile.display;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public final class DisplayProfileLoader {
@@ -18,23 +21,27 @@ public final class DisplayProfileLoader {
 
     @NotNull
     public Map<String, DisplayProfile> load(@NotNull FileConfiguration config) {
-        Map<String, DisplayProfile> profiles = new HashMap<>();
-        ConfigurationSection profilesSection = config.getConfigurationSection("profiles");
+        final Map<String, DisplayProfile> profiles = new HashMap<>();
+        final Map<String, ConfigurationSection> raw = new HashMap<>();
+        final ConfigurationSection root = config.getConfigurationSection("profiles");
 
-        if (profilesSection == null) {
+        if (root == null) {
             logger.warning("No display profiles found in display_profiles.yml");
             return profiles;
         }
 
-        for (String profileId : profilesSection.getKeys(false)) {
-            ConfigurationSection profileSection = profilesSection.getConfigurationSection(profileId);
-            if (profileSection == null) continue;
+        for (String id : root.getKeys(false)) {
+            final ConfigurationSection section = root.getConfigurationSection(id);
+            if (section != null) {
+                raw.put(id, section);
+            }
+        }
 
+        for (String id : raw.keySet()) {
             try {
-                DisplayProfile profile = parseProfile(profileId, profileSection);
-                profiles.put(profileId, profile);
-            } catch (Exception e) {
-                logger.severe("Failed to load display profile '" + profileId + "': " + e.getMessage());
+                resolve(id, raw, profiles, new HashSet<>());
+            } catch (RuntimeException e) {
+                logger.severe("Failed to load display profile '" + id + "': " + e.getMessage());
             }
         }
 
@@ -43,11 +50,61 @@ public final class DisplayProfileLoader {
     }
 
     @NotNull
-    private DisplayProfile parseProfile(@NotNull String id, @NotNull ConfigurationSection section) {
-        DisplayProfile.NameDisplay nameDisplay = parseNameDisplay(section.getConfigurationSection("name"));
-        DisplayProfile.ActionBarDisplay actionBarDisplay = parseActionBarDisplay(section.getConfigurationSection("action_bar"));
-        DisplayProfile.LoreDisplay loreDisplay = parseLoreDisplay(section.getConfigurationSection("lore"));
-        ProgressBarConfig progressBar = parseProgressBar(section.getConfigurationSection("progress_bar"));
+    private DisplayProfile resolve(
+            @NotNull String id,
+            @NotNull Map<String, ConfigurationSection> raw,
+            @NotNull Map<String, DisplayProfile> resolved,
+            @NotNull Set<String> chain
+    ) {
+        final DisplayProfile existing = resolved.get(id);
+        if (existing != null) {
+            return existing;
+        }
+        if (!chain.add(id)) {
+            throw new IllegalStateException("Circular display profile inheritance: " + chain);
+        }
+
+        final ConfigurationSection section = raw.get(id);
+        if (section == null) {
+            throw new IllegalArgumentException("Unknown display profile: " + id);
+        }
+
+        DisplayProfile parent = null;
+        final String parentId = section.getString("extends");
+        if (parentId != null && !parentId.isBlank()) {
+            parent = resolve(parentId, raw, resolved, chain);
+        }
+
+        final DisplayProfile profile = parseProfile(id, section, parent);
+        resolved.put(id, profile);
+        chain.remove(id);
+        return profile;
+    }
+
+    @NotNull
+    private DisplayProfile parseProfile(
+            @NotNull String id,
+            @NotNull ConfigurationSection section,
+            @Nullable DisplayProfile parent
+    ) {
+        final DisplayProfile.NameDisplay nameDisplay =
+                section.isConfigurationSection("name")
+                        ? parseNameDisplay(section.getConfigurationSection("name"))
+                        : parent == null ? DisplayProfile.NameDisplay.disabled() : parent.getNameDisplay();
+        final DisplayProfile.ActionBarDisplay actionBarDisplay =
+                section.isConfigurationSection("action_bar")
+                        ? parseActionBarDisplay(section.getConfigurationSection("action_bar"))
+                        : parent == null
+                                ? DisplayProfile.ActionBarDisplay.disabled()
+                                : parent.getActionBarDisplay();
+        final DisplayProfile.LoreDisplay loreDisplay =
+                section.isConfigurationSection("lore")
+                        ? parseLoreDisplay(section.getConfigurationSection("lore"))
+                        : parent == null ? DisplayProfile.LoreDisplay.disabled() : parent.getLoreDisplay();
+        final ProgressBarConfig progressBar =
+                section.isConfigurationSection("progress_bar")
+                        ? parseProgressBar(section.getConfigurationSection("progress_bar"))
+                        : parent == null ? ProgressBarConfig.defaultConfig() : parent.getProgressBar();
 
         return DisplayProfile.builder(id)
                 .nameDisplay(nameDisplay)
@@ -58,43 +115,43 @@ public final class DisplayProfileLoader {
     }
 
     @NotNull
-    private DisplayProfile.NameDisplay parseNameDisplay(ConfigurationSection section) {
+    private DisplayProfile.NameDisplay parseNameDisplay(@Nullable ConfigurationSection section) {
         if (section == null) {
             return DisplayProfile.NameDisplay.disabled();
         }
-
-        boolean enabled = section.getBoolean("enabled", false);
-        String text = section.getString("text", "{item} &7- &b{level}");
-
-        return new DisplayProfile.NameDisplay(enabled, text);
+        return new DisplayProfile.NameDisplay(
+                section.getBoolean("enabled", false),
+                section.getString("text", "{item} &7- &b{level}")
+        );
     }
 
     @NotNull
-    private DisplayProfile.ActionBarDisplay parseActionBarDisplay(ConfigurationSection section) {
+    private DisplayProfile.ActionBarDisplay parseActionBarDisplay(
+            @Nullable ConfigurationSection section
+    ) {
         if (section == null) {
             return DisplayProfile.ActionBarDisplay.disabled();
         }
-
-        boolean enabled = section.getBoolean("enabled", true);
-        String text = section.getString("text", "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}");
-
-        return new DisplayProfile.ActionBarDisplay(enabled, text);
+        return new DisplayProfile.ActionBarDisplay(
+                section.getBoolean("enabled", true),
+                section.getString(
+                        "text",
+                        "{progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
+                )
+        );
     }
 
     @NotNull
-    private DisplayProfile.LoreDisplay parseLoreDisplay(ConfigurationSection section) {
+    private DisplayProfile.LoreDisplay parseLoreDisplay(@Nullable ConfigurationSection section) {
         if (section == null) {
             return DisplayProfile.LoreDisplay.disabled();
         }
-
-        boolean enabled = section.getBoolean("enabled", true);
-        List<String> lines = section.getStringList("lines");
-
-        return new DisplayProfile.LoreDisplay(enabled, lines);
+        final List<String> lines = section.getStringList("lines");
+        return new DisplayProfile.LoreDisplay(section.getBoolean("enabled", true), lines);
     }
 
     @NotNull
-    private ProgressBarConfig parseProgressBar(ConfigurationSection section) {
+    private ProgressBarConfig parseProgressBar(@Nullable ConfigurationSection section) {
         if (section == null) {
             return ProgressBarConfig.defaultConfig();
         }
@@ -111,11 +168,12 @@ public final class DisplayProfileLoader {
                 .build();
     }
 
-    private char getChar(@NotNull ConfigurationSection section, @NotNull String key, char defaultValue) {
-        String value = section.getString(key);
-        if (value == null || value.isEmpty()) {
-            return defaultValue;
-        }
-        return value.charAt(0);
+    private char getChar(
+            @NotNull ConfigurationSection section,
+            @NotNull String key,
+            char defaultValue
+    ) {
+        final String value = section.getString(key);
+        return value == null || value.isEmpty() ? defaultValue : value.charAt(0);
     }
 }

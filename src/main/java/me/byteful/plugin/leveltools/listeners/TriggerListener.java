@@ -13,7 +13,6 @@ import me.byteful.plugin.leveltools.util.LevelToolsUtil;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Trident;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -21,7 +20,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
@@ -66,38 +64,6 @@ public final class TriggerListener implements Listener {
         }
 
         handleTrigger(player, player.getInventory().getItemInMainHand(), TriggerSlot.HAND, block, event, TriggerIds.BLOCK_BREAK, TriggerIds.FARMING);
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onEntityDeath(EntityDeathEvent event) {
-        Player killer = event.getEntity().getKiller();
-        if (killer == null || !killer.hasPermission("leveltools.enabled")) {
-            return;
-        }
-
-        Entity directEntity = event.getDamageSource().getDirectEntity();
-        if (directEntity instanceof Trident trident) {
-            ItemStack thrownItem = trident.getItemStack();
-            handleTrigger(
-                    killer,
-                    thrownItem,
-                    null,
-                    event.getEntity(),
-                    event,
-                    trident::setItemStack,
-                    TriggerIds.ENTITY_KILL
-            );
-            return;
-        }
-
-        handleTrigger(
-                killer,
-                killer.getInventory().getItemInMainHand(),
-                TriggerSlot.HAND,
-                event.getEntity(),
-                event,
-                TriggerIds.ENTITY_KILL
-        );
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -263,7 +229,13 @@ public final class TriggerListener implements Listener {
                 continue;
             }
 
-            totalModifier += trigger.calculateXpModifier(context);
+            if (LevelToolsPlugin.getInstance().getXpSourceRegistry().hasSource(triggerProfile.getId())) {
+                totalModifier += LevelToolsPlugin.getInstance()
+                        .getXpSourceRegistry()
+                        .calculate(triggerProfile.getId(), context);
+            } else {
+                totalModifier += trigger.calculateXpModifier(context);
+            }
         }
 
         if (totalModifier <= 0.0) {

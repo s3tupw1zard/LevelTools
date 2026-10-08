@@ -124,6 +124,15 @@ public final class ItemProfileLoader {
             displayProfileId = "default";
         }
 
+        final String progressionProfileId = section.getString(
+                "progression_profile",
+                parent != null ? parent.getProgressionProfileId() : "default"
+        );
+        final String statProfileId = section.getString(
+                "stat_profile",
+                parent != null ? parent.getStatProfileId() : "none"
+        );
+
         int maxLevel = section.getInt("max_level", parent != null ? parent.getMaxLevel() : 100);
 
         String levelXpFormula = section.getString("level_xp_formula");
@@ -138,6 +147,8 @@ public final class ItemProfileLoader {
                 .triggerProfiles(triggerProfileIds)
                 .rewardProfile(rewardProfileId)
                 .displayProfile(displayProfileId)
+                .progressionProfile(progressionProfileId)
+                .statProfile(statProfileId)
                 .maxLevel(maxLevel)
                 .levelXpFormula(levelXpFormula)
                 .extendsProfile(extendsProfileId)

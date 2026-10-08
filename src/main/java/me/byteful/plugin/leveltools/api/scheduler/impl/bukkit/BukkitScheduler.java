@@ -5,6 +5,7 @@ import me.byteful.plugin.leveltools.api.scheduler.ScheduledTask;
 import me.byteful.plugin.leveltools.api.scheduler.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 
 public class BukkitScheduler implements Scheduler {
     private final LevelToolsPlugin plugin;
@@ -26,6 +27,11 @@ public class BukkitScheduler implements Scheduler {
     @Override
     public void locationDelayed(Runnable runnable, Location location, long ticksDelay) {
         Bukkit.getScheduler().runTaskLater(plugin, runnable, ticksDelay);
+    }
+
+    @Override
+    public void entityDelayed(Runnable runnable, Entity entity, long ticksDelay) {
+        Bukkit.getScheduler().runTaskLater(plugin, runnable, Math.max(1L, ticksDelay));
     }
 
     @Override

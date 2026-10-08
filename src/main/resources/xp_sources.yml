@@ -1,0 +1,195 @@
+#
+# XP Sources
+# Trigger profiles decide WHEN XP is awarded. This file decides HOW MUCH.
+#
+# Non-combat source IDs map to trigger profile IDs, so custom trigger profiles can
+# define their own XP table without mixing reward values into trigger_profiles.yml.
+#
+sources:
+  block_mining:
+    default:
+      min: 0.5
+      max: 1.5
+    custom:
+      COAL_ORE:
+        min: 1.5
+        max: 2.5
+      COPPER_ORE:
+        min: 1.5
+        max: 2.5
+      IRON_ORE:
+        min: 2.0
+        max: 3.0
+      GOLD_ORE:
+        min: 2.5
+        max: 4.0
+      REDSTONE_ORE:
+        min: 2.5
+        max: 4.0
+      LAPIS_ORE:
+        min: 3.0
+        max: 4.5
+      DIAMOND_ORE:
+        min: 5.0
+        max: 8.0
+      EMERALD_ORE:
+        min: 6.0
+        max: 9.0
+      ANCIENT_DEBRIS:
+        min: 8.0
+        max: 12.0
+
+  fishing:
+    default:
+      min: 1.5
+      max: 3.0
+    custom:
+      COD:
+        min: 1.5
+        max: 2.5
+      SALMON:
+        min: 2.0
+        max: 3.0
+      TROPICAL_FISH:
+        min: 2.5
+        max: 4.0
+      PUFFERFISH:
+        min: 2.5
+        max: 4.0
+
+  armor_durability:
+    default:
+      min: 0.5
+      max: 1.0
+
+  farming:
+    default:
+      min: 1.0
+      max: 2.0
+    custom:
+      TILL:
+        min: 0.5
+        max: 1.0
+      WHEAT:
+        min: 1.0
+        max: 2.0
+      CARROTS:
+        min: 1.0
+        max: 2.0
+      POTATOES:
+        min: 1.0
+        max: 2.0
+      BEETROOTS:
+        min: 1.5
+        max: 2.5
+      NETHER_WART:
+        min: 2.0
+        max: 3.0
+      MELON:
+        min: 1.5
+        max: 2.5
+      PUMPKIN:
+        min: 1.5
+        max: 2.5
+      COCOA:
+        min: 1.5
+        max: 2.5
+      SWEET_BERRY_BUSH:
+        min: 1.0
+        max: 1.5
+
+combat:
+  formula:
+    base_xp: 2.0
+    health_scale: 0.35
+    health_exponent: 0.80
+    minimum_xp: 1.0
+    maximum_xp: 750.0
+
+  entity_multipliers:
+    BLAZE: 1.50
+    ENDERMAN: 1.50
+    WITHER_SKELETON: 1.75
+    SHULKER: 1.75
+    HOGLIN: 1.65
+    ZOGLIN: 1.85
+    PIGLIN_BRUTE: 2.00
+    EVOKER: 2.25
+    RAVAGER: 2.75
+    ELDER_GUARDIAN: 3.50
+    WARDEN: 12.00
+    WITHER: 10.00
+    ENDER_DRAGON: 14.00
+
+  sharing:
+    enabled: true
+    mode: DAMAGE_WEIGHTED
+    contribution_timeout_seconds: 45
+    minimum_contribution: 0.02
+    count_overkill: false
+
+    # When a player is holding two valid LevelTools combat items during a melee
+    # attack, split that player's contribution evenly between both concrete items.
+    dual_wield_split: true
+
+    # Fraction of that player's XP share that is discarded while dual-wielding.
+    # 0.30 = 30% lost, then the remaining 70% is split between both items.
+    # Set to 0.0 for no penalty or 1.0 to award no dual-wield combat XP.
+    dual_wield_xp_penalty: 0.30
+
+    group_scaling:
+      enabled: false
+      per_extra_player: 0.05
+      max_multiplier: 1.25
+
+  # Challenge bonus for selected high-risk mobs. Only the bonus portion is
+  # cooldown-limited; the normal combat XP pool is always awarded.
+  level_bonus:
+    enabled: true
+    curve_exponent: 1.25
+
+    # Optional extra multiplier based on how much of a contributor's effective
+    # damage came from LevelTools critical hits. This is damage-weighted rather
+    # than hit-count based so rapid weak attacks cannot farm the bonus.
+    critical_damage_bonus:
+      enabled: true
+      max_multiplier: 1.10
+      curve_exponent: 1.00
+
+    mobs:
+      PIGLIN_BRUTE:
+        max_multiplier: 1.25
+        curve_exponent: 1.35
+        claim_interval_seconds: 300
+        minimum_level: 20
+        required_leveltools_critical_hits: 0
+      RAVAGER:
+        max_multiplier: 1.35
+        curve_exponent: 1.30
+        claim_interval_seconds: 300
+        minimum_level: 20
+        required_leveltools_critical_hits: 0
+      ELDER_GUARDIAN:
+        max_multiplier: 1.50
+        curve_exponent: 1.25
+        claim_interval_seconds: 600
+        minimum_level: 20
+        required_leveltools_critical_hits: 0
+      WARDEN:
+        max_multiplier: 2.25
+        curve_exponent: 1.10
+        claim_interval_seconds: 1800
+        minimum_level: 20
+        required_leveltools_critical_hits: 0
+      WITHER:
+        max_multiplier: 1.90
+        curve_exponent: 1.20
+        claim_interval_seconds: 1200
+        minimum_level: 20
+        required_leveltools_critical_hits: 0
+      ENDER_DRAGON:
+        max_multiplier: 2.10
+        curve_exponent: 1.15
+        claim_interval_seconds: 3600
+        minimum_level: 20
+        required_leveltools_critical_hits: 0

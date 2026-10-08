@@ -127,6 +127,11 @@ combat:
     contribution_timeout_seconds: 45
     minimum_contribution: 0.02
     count_overkill: false
+
+    # When a player is holding two valid LevelTools combat items during a melee
+    # attack, split that player's contribution evenly between both concrete items.
+    dual_wield_split: true
+
     group_scaling:
       enabled: false
       per_extra_player: 0.05

@@ -74,6 +74,7 @@ public final class ConfigManager {
         updater.updateProgressionConfigs();
         itemProfilesConfig = loadOrCreate("item_profiles.yml");
         progressionProfilesConfig = loadOrCreate("progression_profiles.yml");
+        displayProfilesConfig = loadOrCreate("display_profiles.yml");
 
         settings = Settings.from(mainConfig, logger);
 

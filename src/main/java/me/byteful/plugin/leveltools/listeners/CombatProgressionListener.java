@@ -195,7 +195,7 @@ public final class CombatProgressionListener implements Listener {
 
         for (Map.Entry<UUID, List<Contribution>> playerEntry : byPlayer.entrySet()) {
             final Player player = Bukkit.getPlayer(playerEntry.getKey());
-            if (player == null || !player.isOnline()) {
+            if (player == null) {
                 continue;
             }
 

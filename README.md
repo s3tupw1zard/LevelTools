@@ -1,18 +1,18 @@
-[![Java CI with Gradle](https://github.com/byteful/LevelTools/actions/workflows/gradle.yml/badge.svg?branch=main)](https://github.com/byteful/LevelTools/actions/workflows/gradle.yml)
-[![Discord](https://img.shields.io/discord/911029017472270357?color=7289da&logo=discord)](https://discord.gg/G8BDgqsuyw)
-[![](https://jitpack.io/v/byteful/LevelTools.svg)](https://jitpack.io/#byteful/LevelTools)
+[![Java CI with Gradle](https://github.com/s3tupw1zard/LevelTools/actions/workflows/gradle.yml/badge.svg?branch=main)](https://github.com/s3tupw1zard/LevelTools/actions/workflows/gradle.yml)
+[![](https://jitpack.io/v/s3tupw1zard/LevelTools.svg)](https://jitpack.io/#s3tupw1zard/LevelTools)
 
-<h5 align="center">SpigotMC: https://www.spigotmc.org/resources/leveltools-rpg-item-leveling.97516/</h5>
-<h5 align="center">Support/Help Server: https://discord.gg/G8BDgqsuyw</h5>
-<h5 align="center">WIKI: https://github.com/byteful/LevelTools/wiki</h5>
+<h5 align="center">Maintained fork: https://github.com/s3tupw1zard/LevelTools</h5>
+<h5 align="center">Issues / support: https://github.com/s3tupw1zard/LevelTools/issues</h5>
+<h5 align="center">Original project by byteful: https://github.com/byteful/LevelTools</h5>
+<h5 align="center">Upstream documentation: https://github.com/byteful/LevelTools/wiki</h5>
 
 ![Logo](https://github.com/byteful/LevelTools/blob/main/LevelTools%20Large%20Logo.png?raw=true)
 
-<h3 align="center">A plugin that adds a leveling system to any item.</h3>
+<h3 align="center">LevelTools, originally created by byteful and extended by s3tupw1zard.</h3>
 
 ## Features
 
-- Supports Minecraft 1.8.8+
+- Targets Paper/Purpur 26.2+ with Java 25.
 - Supports Folia.
 - No required dependencies; PlaceholderAPI is optional.
 - Profile-based configuration system.
@@ -25,7 +25,19 @@
 - Optional enchanted-book blocking for LevelTools items.
 - Farming trigger support for fully grown player-planted crops.
 
-## What's New in 2.2
+## What's New in 2026.1
+
+The maintained fork uses SemVer-compatible CalVer: `YYYY.RELEASE.PATCH`.
+The first stable target is `2026.1.0`; development builds use
+`2026.1.0-SNAPSHOT`.
+
+- Java 25 and Paper/Purpur 26.2 baseline.
+- Current Gradle and Shadow toolchain.
+- Fork-owned update checking and support links.
+- Removal of legacy Bukkit farming and attribute APIs.
+- Warning-free compilation enforced in CI.
+
+### Previous upstream 2.2 changes
 
 - `ARMOR_DURABILITY` trigger awards XP when armor takes damage.
 - Configurable XP formulas under `xp_formulas`, selectable per player via `leveltools.formula.<id>`.

@@ -6,6 +6,7 @@ import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
 import me.byteful.plugin.leveltools.model.LevelAndXPModel;
 import me.byteful.plugin.leveltools.util.LevelToolsUtil;
 import com.google.common.collect.Multimap;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
@@ -23,6 +24,7 @@ import static me.byteful.plugin.leveltools.listeners.anvil.AnvilHelper.shouldBlo
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -84,7 +86,7 @@ public class LegacyAnvilListener implements Listener {
                     targetMeta.getAttributeModifiers(entry.getKey());
             if (targetModifiers != null) {
                 for (AttributeModifier targetModifier : targetModifiers) {
-                    if (sourceModifier.getUniqueId().equals(targetModifier.getUniqueId())) {
+                    if (sourceModifier.getKey().equals(targetModifier.getKey())) {
                         targetMeta.removeAttributeModifier(entry.getKey(), targetModifier);
                     }
                 }
@@ -98,9 +100,19 @@ public class LegacyAnvilListener implements Listener {
     }
 
     private static boolean isLevelToolsAttributeModifier(AttributeModifier modifier) {
-        final UUID expected = UUID.nameUUIDFromBytes(
+        final NamespacedKey key = modifier.getKey();
+
+        // Modern reward modifiers are keyed in this plugin's namespace.
+        if (key.getNamespace().equals(LevelToolsPlugin.getInstance().getName().toLowerCase(Locale.ROOT))
+                && key.getKey().startsWith("reward/")) {
+            return true;
+        }
+
+        // Older builds used a name-derived UUID; Bukkit exposes it as a namespaced key.
+        final UUID legacyId = UUID.nameUUIDFromBytes(
                 modifier.getName().getBytes(StandardCharsets.UTF_8));
-        return expected.equals(modifier.getUniqueId());
+        return NamespacedKey.BUKKIT.equals(key.getNamespace())
+                && legacyId.toString().equals(key.getKey());
     }
 
     static boolean isHandledAnvilAction(ItemStack firstItem, ItemStack secondItem, ItemStack result) {

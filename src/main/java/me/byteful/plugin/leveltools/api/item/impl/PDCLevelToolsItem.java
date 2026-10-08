@@ -3,7 +3,10 @@ package me.byteful.plugin.leveltools.api.item.impl;
 import me.byteful.plugin.leveltools.LevelToolsPlugin;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
 import me.byteful.plugin.leveltools.util.LevelToolsUtil;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
@@ -14,13 +17,11 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 public class PDCLevelToolsItem implements LevelToolsItem {
     @NotNull
@@ -94,23 +95,56 @@ public class PDCLevelToolsItem implements LevelToolsItem {
     private void applyAttributes(@NotNull ItemMeta meta) {
         for (Map.Entry<String, Double> entry : attributes.entrySet()) {
             final String name = entry.getKey();
-            final Attribute attribute =
-                    Attribute.valueOf(name.replace(".", "_").toUpperCase(Locale.ROOT).trim());
+            final Registry<Attribute> attributeRegistry =
+                    RegistryAccess.registryAccess().getRegistry(RegistryKey.ATTRIBUTE);
+            final Attribute attribute = resolveAttribute(attributeRegistry, name);
+            final NamespacedKey attributeKey = attributeRegistry.getKeyOrThrow(attribute);
+            final NamespacedKey modifierKey =
+                    new NamespacedKey(LevelToolsPlugin.getInstance(), "reward/" + attributeKey.getKey());
+
             final Collection<AttributeModifier> existing = meta.getAttributeModifiers(attribute);
             if (existing != null) {
                 for (AttributeModifier modifier : existing) {
-                    if (name.equals(modifier.getName())) {
+                    if (modifierKey.equals(modifier.getKey())) {
                         meta.removeAttributeModifier(attribute, modifier);
                     }
                 }
             }
-            // Deterministic UUID so rebuilds replace the modifier instead of stacking duplicates.
-            meta.addAttributeModifier(attribute, new AttributeModifier(
-                    UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8)),
-                    name,
-                    entry.getValue(),
-                    AttributeModifier.Operation.ADD_NUMBER));
+
+            meta.addAttributeModifier(
+                    attribute,
+                    new AttributeModifier(
+                            modifierKey,
+                            entry.getValue(),
+                            AttributeModifier.Operation.ADD_NUMBER));
         }
+    }
+
+    private static Attribute resolveAttribute(
+            @NotNull Registry<Attribute> attributeRegistry, @NotNull String configuredName) {
+        String normalized = configuredName.trim().toLowerCase(Locale.ROOT);
+        final NamespacedKey key;
+
+        if (normalized.contains(":")) {
+            key = NamespacedKey.fromString(normalized);
+        } else {
+            final int legacyPrefixSeparator = normalized.indexOf('.');
+            if (legacyPrefixSeparator >= 0) {
+                normalized = normalized.substring(legacyPrefixSeparator + 1);
+            }
+            key = NamespacedKey.minecraft(normalized.replace('.', '_'));
+        }
+
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid attribute key: " + configuredName);
+        }
+
+        final Attribute attribute = attributeRegistry.get(key);
+        if (attribute == null) {
+            throw new IllegalArgumentException("Unknown attribute: " + configuredName);
+        }
+
+        return attribute;
     }
 
     @Override

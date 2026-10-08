@@ -1,6 +1,5 @@
 package me.byteful.plugin.leveltools.util;
 
-import org.bukkit.ChatColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
@@ -10,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 public final class Text {
+  private static final char COLOR_CHAR = '\u00A7';
   private static final Set<Character> COLOR_CODES = new HashSet<>();
   static {
     for (char c : "0123456789abcdefklmnor".toCharArray()) {
@@ -19,7 +19,7 @@ public final class Text {
 
   @NotNull
   public static String decolorize(@NotNull String string) {
-    return colorize(string).replace("" + ChatColor.COLOR_CHAR, "&");
+    return colorize(string).replace(String.valueOf(COLOR_CHAR), "&");
   }
 
   @NotNull
@@ -40,7 +40,7 @@ public final class Text {
 
         if (c == '&') {
           if (COLOR_CODES.contains(Character.toLowerCase(n))) {
-            builder.append(ChatColor.COLOR_CHAR).append(Character.toLowerCase(n));
+            builder.append(COLOR_CHAR).append(Character.toLowerCase(n));
             i++;
             continue;
           }
@@ -48,9 +48,9 @@ public final class Text {
           if (n == '#' && i + 7 < len) {
             String hexCode = input.substring(i + 2, i + 8);
             if (hexCode.chars().allMatch(Text::isHexChar)) {
-              builder.append(ChatColor.COLOR_CHAR).append('x');
+              builder.append(COLOR_CHAR).append('x');
               for (char hc : hexCode.toCharArray())
-                builder.append(ChatColor.COLOR_CHAR).append(Character.toLowerCase(hc));
+                builder.append(COLOR_CHAR).append(Character.toLowerCase(hc));
               i += 7;
               continue;
             }

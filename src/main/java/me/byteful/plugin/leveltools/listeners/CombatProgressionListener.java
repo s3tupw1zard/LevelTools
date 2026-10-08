@@ -214,8 +214,15 @@ public final class CombatProgressionListener implements Listener {
 
         final List<Contribution> qualified;
         if (sharing.enabled()) {
+            final Map<UUID, Double> damageByPlayer = recent.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            entry -> entry.playerId,
+                            java.util.stream.Collectors.summingDouble(entry -> entry.damage)
+                    ));
             qualified = recent.stream()
-                    .filter(entry -> entry.damage / allDamage >= sharing.minimumContribution())
+                    .filter(entry ->
+                            damageByPlayer.getOrDefault(entry.playerId, 0.0) / allDamage
+                                    >= sharing.minimumContribution())
                     .toList();
         } else {
             final Contribution lastHit = recent.stream()

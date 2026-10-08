@@ -155,8 +155,12 @@ public class LevelToolsCommand {
             final LevelToolsItem tool = LevelToolsUtil.createLevelToolsItem(item);
             final ItemProfile itemProfile = LevelToolsUtil.getItemProfile(item.getType());
             final int initial = tool.getLevel();
-            final int targetLevel = Math.max(1, Math.min(level, LevelToolsUtil.getMaxLevel(itemProfile)));
+            final int maxLevel = LevelToolsUtil.getMaxLevel(itemProfile);
+            final int targetLevel = Math.max(1, Math.min(level, maxLevel));
             tool.setLevel(targetLevel);
+            if (targetLevel >= maxLevel) {
+                tool.setXp(0.0);
+            }
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
             if (initial != tool.getLevel()) {
                 LevelToolsUtil.handleReward(tool, player);
@@ -198,6 +202,9 @@ public class LevelToolsCommand {
             }
 
             tool.setLevel(initial + 1);
+            if (tool.getLevel() >= maxLevel) {
+                tool.setXp(0.0);
+            }
             LevelToolsUtil.setHand(player, LevelToolsUtil.getItemStack(tool, player, itemProfile));
             LevelToolsUtil.handleReward(tool, player);
             player.sendMessage(colorize(message(

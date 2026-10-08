@@ -60,12 +60,12 @@ public final class TriggerListener implements Listener {
         if (!settings.isCountPlayerPlacedBlocks()
                 && LevelToolsPlugin.getInstance().getBlockDataManager().isPlacedBlock(BlockPosition.fromBukkit(block))) {
             if (settings.isIgnorePlayerPlacedBlocksForFullyGrownCrops() && FarmingTrigger.isMatureCropSource(block)) {
-                handleTrigger(player, player.getItemInHand(), TriggerSlot.HAND, block, event, TriggerIds.FARMING);
+                handleTrigger(player, player.getInventory().getItemInMainHand(), TriggerSlot.HAND, block, event, TriggerIds.FARMING);
             }
             return;
         }
 
-        handleTrigger(player, player.getItemInHand(), TriggerSlot.HAND, block, event, TriggerIds.BLOCK_BREAK, TriggerIds.FARMING);
+        handleTrigger(player, player.getInventory().getItemInMainHand(), TriggerSlot.HAND, block, event, TriggerIds.BLOCK_BREAK, TriggerIds.FARMING);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -92,7 +92,7 @@ public final class TriggerListener implements Listener {
 
         handleTrigger(
                 killer,
-                killer.getItemInHand(),
+                killer.getInventory().getItemInMainHand(),
                 TriggerSlot.HAND,
                 event.getEntity(),
                 event,
@@ -116,7 +116,7 @@ public final class TriggerListener implements Listener {
         TriggerSlot slot;
 
         if (!LevelToolsUtil.supportsDualWielding() || event.getHand() == null) {
-            item = event.getPlayer().getItemInHand();
+            item = event.getPlayer().getInventory().getItemInMainHand();
             slot = TriggerSlot.HAND;
         } else {
             item = event.getPlayer().getInventory().getItem(event.getHand());

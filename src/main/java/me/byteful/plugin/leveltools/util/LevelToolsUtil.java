@@ -1,10 +1,11 @@
 package me.byteful.plugin.leveltools.util;
 
-import com.cryptomorin.xseries.messages.ActionBar;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT;
 import me.byteful.plugin.leveltools.LevelToolsPlugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import me.byteful.plugin.leveltools.api.item.LevelToolsItem;
-import me.byteful.plugin.leveltools.api.item.impl.NBTLevelToolsItem;
 import me.byteful.plugin.leveltools.api.item.impl.PDCLevelToolsItem;
 import me.byteful.plugin.leveltools.api.scheduler.Scheduler;
 import me.byteful.plugin.leveltools.api.scheduler.impl.bukkit.BukkitScheduler;
@@ -16,8 +17,6 @@ import me.byteful.plugin.leveltools.profile.display.ProgressBarConfig;
 import me.byteful.plugin.leveltools.profile.item.ItemProfile;
 import me.byteful.plugin.leveltools.profile.reward.RewardEntry;
 import me.byteful.plugin.leveltools.profile.reward.RewardProfile;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -33,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -48,6 +48,11 @@ public final class LevelToolsUtil {
     private static final Pattern SERVER_MINECRAFT_VERSION_PATTERN =
             Pattern.compile("\\(MC:\\s*([^\\s)]+)\\)");
     private static final String LORE_PREFIX = "§§";
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER =
+            LegacyComponentSerializer.legacySection();
+    private static final String LEGACY_LEVEL_KEY = "levelToolsLevel";
+    private static final String LEGACY_XP_KEY = "levelToolsXp";
+    private static final String LEGACY_REWARD_KEY = "levelToolsReward";
     public static final boolean IS_PAPER = hasClass("com.destroystokyo.paper.PaperConfig") || hasClass("io.papermc.paper.configuration.Configuration");
     private static final MinecraftVersion MINECRAFT_VERSION;
     private static final boolean REQUIRES_LEGACY_ANVIL_LISTENER;
@@ -103,17 +108,11 @@ public final class LevelToolsUtil {
     }
 
     public static ItemStack getHand(Player player) {
-        return supportsDualWielding()
-                ? player.getInventory().getItemInMainHand().clone()
-                : player.getItemInHand().clone();
+        return player.getInventory().getItemInMainHand().clone();
     }
 
     public static void setHand(Player player, ItemStack stack) {
-        if (supportsDualWielding()) {
-            player.getInventory().setItemInMainHand(stack);
-        } else {
-            player.setItemInHand(stack);
-        }
+        player.getInventory().setItemInMainHand(stack);
     }
 
     public static void setItemInSlot(@NotNull Player player, @Nullable TriggerSlot slot, @NotNull ItemStack stack) {
@@ -123,11 +122,7 @@ public final class LevelToolsUtil {
         }
 
         if (slot == TriggerSlot.OFF_HAND) {
-            if (supportsDualWielding()) {
-                player.getInventory().setItemInOffHand(stack);
-            } else {
-                setHand(player, stack);
-            }
+            player.getInventory().setItemInOffHand(stack);
             return;
         }
 
@@ -156,7 +151,7 @@ public final class LevelToolsUtil {
         }
 
         if (slot == TriggerSlot.OFF_HAND) {
-            return supportsDualWielding() ? player.getInventory().getItemInOffHand() : getHand(player);
+            return player.getInventory().getItemInOffHand();
         }
 
         switch (slot) {
@@ -216,83 +211,32 @@ public final class LevelToolsUtil {
 
     @Nullable
     public static ItemStack getBackingItemStack(@NotNull LevelToolsItem tool) {
-        if (tool instanceof PDCLevelToolsItem) {
-            return ((PDCLevelToolsItem) tool).getStack();
-        }
-        if (tool instanceof NBTLevelToolsItem) {
-            return ((NBTLevelToolsItem) tool).getNBT().getItem();
-        }
-        return null;
+        return tool instanceof PDCLevelToolsItem
+                ? ((PDCLevelToolsItem) tool).getStack()
+                : null;
     }
 
     public static boolean rebindLevelToolsItem(@NotNull LevelToolsItem tool, @NotNull ItemStack stack) {
+        if (!(tool instanceof PDCLevelToolsItem pdcItem)) {
+            return false;
+        }
+
         final int level = tool.getLevel();
         final double xp = tool.getXp();
         final int lastHandledReward = tool.getLastHandledReward();
 
-        if (tool instanceof PDCLevelToolsItem) {
-            ((PDCLevelToolsItem) tool).setStack(stack);
-        } else if (tool instanceof NBTLevelToolsItem) {
-            ((NBTLevelToolsItem) tool).setNBT(new NBTItem(stack));
-        } else {
-            return false;
-        }
-
+        pdcItem.setStack(stack);
         tool.setLevel(level);
         tool.setXp(xp);
         tool.setLastHandledReward(lastHandledReward);
-
         return true;
     }
 
-    public static LevelToolsItem createLevelToolsItem(ItemStack stack) {
-        if (!supportsPersistentDataContainer()) {
-            return new NBTLevelToolsItem(stack);
-        }
-
-        return isNbtStorageForced() ? createNbtItem(stack) : createPdcItem(stack);
+    public static LevelToolsItem createLevelToolsItem(@NotNull ItemStack stack) {
+        return createPdcItem(stack);
     }
 
-    public static boolean isNbtStorageForced() {
-        final LevelToolsPlugin instance = LevelToolsPlugin.getInstance();
-        return instance != null && instance.getConfig().getBoolean("force_nbt", false);
-    }
-
-    private static LevelToolsItem createNbtItem(ItemStack stack) {
-        final ItemMeta meta = stack.getItemMeta();
-        if (meta == null) {
-            return new NBTLevelToolsItem(stack);
-        }
-
-        final PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        final Integer level = pdc.get(PDCLevelToolsItem.LEVEL_KEY, PersistentDataType.INTEGER);
-        final Double xp = pdc.get(PDCLevelToolsItem.XP_KEY, PersistentDataType.DOUBLE);
-        final Integer lastReward = pdc.get(PDCLevelToolsItem.LAST_REWARD_KEY, PersistentDataType.INTEGER);
-        if (level == null && xp == null && lastReward == null) {
-            return new NBTLevelToolsItem(stack);
-        }
-
-        pdc.remove(PDCLevelToolsItem.LEVEL_KEY);
-        pdc.remove(PDCLevelToolsItem.XP_KEY);
-        pdc.remove(PDCLevelToolsItem.LAST_REWARD_KEY);
-        final ItemStack migrated = stack.clone();
-        migrated.setItemMeta(meta);
-
-        final NBTLevelToolsItem item = new NBTLevelToolsItem(migrated);
-        if (level != null) {
-            item.setLevel(level);
-        }
-        if (xp != null) {
-            item.setXp(xp);
-        }
-        if (lastReward != null) {
-            item.setLastHandledReward(lastReward);
-        }
-
-        return item;
-    }
-
-    private static LevelToolsItem createPdcItem(ItemStack stack) {
+    private static LevelToolsItem createPdcItem(@NotNull ItemStack stack) {
         final ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return new PDCLevelToolsItem(stack, null);
@@ -305,32 +249,32 @@ public final class LevelToolsUtil {
             return new PDCLevelToolsItem(stack, meta);
         }
 
-        final NBTItem nbt = new NBTItem(stack);
-        final boolean hasLevel = nbt.hasTag(NBTLevelToolsItem.LEVEL_KEY);
-        final boolean hasXp = nbt.hasTag(NBTLevelToolsItem.XP_KEY);
-        final boolean hasLastReward = nbt.hasTag(NBTLevelToolsItem.LAST_REWARD_KEY);
-        if (!hasLevel && !hasXp && !hasLastReward) {
+        final LegacyLevelData legacy = NBT.get(stack, (ReadableItemNBT nbt) -> new LegacyLevelData(
+                nbt.hasTag(LEGACY_LEVEL_KEY) ? nbt.getInteger(LEGACY_LEVEL_KEY) : null,
+                nbt.hasTag(LEGACY_XP_KEY) ? nbt.getDouble(LEGACY_XP_KEY) : null,
+                nbt.hasTag(LEGACY_REWARD_KEY) ? nbt.getInteger(LEGACY_REWARD_KEY) : null));
+
+        if (!legacy.hasAnyValue()) {
             return new PDCLevelToolsItem(stack, meta);
         }
 
-        final Integer level = hasLevel ? nbt.getInteger(NBTLevelToolsItem.LEVEL_KEY) : null;
-        final Double xp = hasXp ? nbt.getDouble(NBTLevelToolsItem.XP_KEY) : null;
-        final Integer lastReward = hasLastReward ? nbt.getInteger(NBTLevelToolsItem.LAST_REWARD_KEY) : null;
-        nbt.removeKey(NBTLevelToolsItem.LEVEL_KEY);
-        nbt.removeKey(NBTLevelToolsItem.XP_KEY);
-        nbt.removeKey(NBTLevelToolsItem.LAST_REWARD_KEY);
+        final ItemStack migrated = stack.clone();
+        NBT.modify(migrated, nbt -> {
+            nbt.removeKey(LEGACY_LEVEL_KEY);
+            nbt.removeKey(LEGACY_XP_KEY);
+            nbt.removeKey(LEGACY_REWARD_KEY);
+        });
 
-        final PDCLevelToolsItem item = new PDCLevelToolsItem(nbt.getItem());
-        if (level != null) {
-            item.setLevel(level);
+        final PDCLevelToolsItem item = new PDCLevelToolsItem(migrated);
+        if (legacy.level() != null) {
+            item.setLevel(legacy.level());
         }
-        if (xp != null) {
-            item.setXp(xp);
+        if (legacy.xp() != null) {
+            item.setXp(legacy.xp());
         }
-        if (lastReward != null) {
-            item.setLastHandledReward(lastReward);
+        if (legacy.lastReward() != null) {
+            item.setLastHandledReward(legacy.lastReward());
         }
-
         return item;
     }
 
@@ -465,7 +409,7 @@ public final class LevelToolsUtil {
                         && IS_PAPER) {
                     AdventureHelper.setDisplayNameWithTranslatable(meta, text, stack);
                 } else {
-                    meta.setDisplayName(text);
+                    meta.displayName(LEGACY_SERIALIZER.deserialize(text));
                 }
             }
 
@@ -511,46 +455,43 @@ public final class LevelToolsUtil {
     }
 
     private static void smartSetLore(@NotNull ItemMeta meta, @NotNull List<String> toAdd) {
-        final List<String> lore = meta.getLore();
-        if (!meta.hasLore() || lore == null) {
-            meta.setLore(toAdd);
+        final List<Component> additions = toAdd.stream()
+                .map(LEGACY_SERIALIZER::deserialize)
+                .collect(Collectors.toCollection(ArrayList::new));
+        final List<Component> existing = meta.lore();
 
+        if (existing == null || existing.isEmpty()) {
+            meta.lore(additions);
             return;
         }
 
+        final List<Component> lore = new ArrayList<>(existing);
         final int[] bounds = findPrefixBounds(lore);
         final int start = bounds[0];
         final int end = bounds[1];
+
         if (start == -1) {
-            lore.addAll(toAdd);
-            meta.setLore(lore);
-
+            lore.addAll(additions);
+            meta.lore(lore);
             return;
         }
-        if (end >= lore.size()) {
-            meta.setLore(toAdd);
 
-            return;
-        }
-        final List<String> sub = lore.subList(start, end + 1);
-        sub.clear();
-        sub.addAll(toAdd);
-        meta.setLore(lore);
+        lore.subList(start, end + 1).clear();
+        lore.addAll(start, additions);
+        meta.lore(lore);
     }
 
-    private static int[] findPrefixBounds(@NotNull List<String> lore) {
-        final int[] arr = new int[]{-1, -1};
+    private static int[] findPrefixBounds(@NotNull List<Component> lore) {
+        final int[] bounds = new int[]{-1, -1};
         for (int i = 0; i < lore.size(); i++) {
-            if (lore.get(i).startsWith(LORE_PREFIX)) {
-                if (arr[0] == -1) {
-                    arr[0] = i;
+            if (LEGACY_SERIALIZER.serialize(lore.get(i)).startsWith(LORE_PREFIX)) {
+                if (bounds[0] == -1) {
+                    bounds[0] = i;
                 }
-
-                arr[1] = i;
+                bounds[1] = i;
             }
         }
-
-        return arr;
+        return bounds;
     }
 
     public static void handleReward(LevelToolsItem tool, Player player) {
@@ -614,11 +555,7 @@ public final class LevelToolsUtil {
     }
 
     public static void sendActionBar(Player player, String msg) {
-        if (supportsSpigotActionBar()) {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(msg));
-        } else {
-            ActionBar.sendActionBar(player, msg);
-        }
+        player.sendActionBar(LEGACY_SERIALIZER.deserialize(msg));
     }
 
     public static Scheduler createScheduler(LevelToolsPlugin plugin) {
@@ -635,6 +572,12 @@ public final class LevelToolsUtil {
             return true;
         } catch (ClassNotFoundException e) {
             return false;
+        }
+    }
+
+    private record LegacyLevelData(Integer level, Double xp, Integer lastReward) {
+        private boolean hasAnyValue() {
+            return level != null || xp != null || lastReward != null;
         }
     }
 

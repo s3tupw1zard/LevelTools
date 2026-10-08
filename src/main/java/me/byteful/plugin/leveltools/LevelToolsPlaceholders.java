@@ -21,12 +21,12 @@ public class LevelToolsPlaceholders extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getAuthor() {
-        return "byteful";
+        return "byteful, s3tupw1zard";
     }
 
     @Override
     public @NotNull String getVersion() {
-        return LevelToolsPlugin.getInstance().getDescription().getVersion();
+        return LevelToolsPlugin.getInstance().getPluginMeta().getVersion();
     }
 
     @Override

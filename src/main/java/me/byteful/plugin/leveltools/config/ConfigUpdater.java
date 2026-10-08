@@ -49,8 +49,8 @@ public final class ConfigUpdater {
             changed = true;
         }
 
-        if (!config.contains("force_nbt")) {
-            config.set("force_nbt", false);
+        if (config.contains("force_nbt")) {
+            config.set("force_nbt", null);
             changed = true;
         }
 
@@ -61,14 +61,14 @@ public final class ConfigUpdater {
         backupConfig(configPath);
         try {
             config.save(configPath.toFile());
-            logger.info("Updated config.yml with v2.2.0 configuration keys.");
+            logger.info("Updated config.yml for the 2026.1 configuration baseline.");
         } catch (IOException e) {
             logger.severe("Failed to update config.yml: " + e.getMessage());
         }
     }
 
     private void backupConfig(@NotNull Path configPath) {
-        Path backupPath = dataFolder.resolve("config-v2.2-backup-" + System.currentTimeMillis() + ".yml");
+        Path backupPath = dataFolder.resolve("config-2026.1-backup-" + System.currentTimeMillis() + ".yml");
         try {
             Files.copy(configPath, backupPath, StandardCopyOption.COPY_ATTRIBUTES);
             logger.info("Backed up config.yml to " + backupPath.getFileName());

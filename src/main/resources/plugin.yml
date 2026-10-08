@@ -1,9 +1,11 @@
 name: "LevelTools"
 version: "${version}"
 main: "me.byteful.plugin.leveltools.LevelToolsPlugin"
-author: byteful
-description: "A plugin that adds a leveling system to tools, swords, and bows."
-website: "https://github.com/byteful/LevelTools"
+authors:
+  - byteful
+  - s3tupw1zard
+description: "LevelTools, originally created by byteful and extended by s3tupw1zard."
+website: "https://github.com/s3tupw1zard/LevelTools"
 api-version: "26.2"
 folia-supported: true
 softdepend:

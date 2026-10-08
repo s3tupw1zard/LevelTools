@@ -176,6 +176,38 @@ public final class LevelToolsUtil {
         }
     }
 
+    @NotNull
+    public static String getReadableItemName(@NotNull ItemStack item) {
+        return humanizeEnumName(item.getType().name());
+    }
+
+    @NotNull
+    public static String getReadableSlotName(@Nullable TriggerSlot slot) {
+        if (slot == null) {
+            return "Item";
+        }
+        return humanizeEnumName(slot.name());
+    }
+
+    @NotNull
+    private static String humanizeEnumName(@NotNull String value) {
+        final String[] words = value.toLowerCase(Locale.ROOT).split("_");
+        final StringBuilder result = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (!result.isEmpty()) {
+                result.append(' ');
+            }
+            result.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) {
+                result.append(word.substring(1));
+            }
+        }
+        return result.toString();
+    }
+
     public static String createProgressBar(double xp, double maxXp, @Nullable DisplayProfile displayProfile) {
         if (displayProfile != null) {
             return displayProfile.getProgressBar().buildProgressBar(xp, maxXp);
@@ -479,7 +511,13 @@ public final class LevelToolsUtil {
 
             DisplayProfile.LoreDisplay loreDisplay = displayProfile.getLoreDisplay();
             if (loreDisplay.isEnabled()) {
-                List<String> lines = loreDisplay.getLines().stream()
+                final boolean maxed = level >= maxLevel;
+                final List<String> configuredLines = compactLoreLines(
+                        loreDisplay.getLines().stream()
+                                .filter(str -> !maxed || !containsProgressPlaceholder(str))
+                                .collect(Collectors.toList())
+                );
+                List<String> lines = configuredLines.stream()
                         .map(str -> LORE_PREFIX + str)
                         .map(str -> colorize(replaceDisplayPlaceholders(
                                 str,
@@ -617,6 +655,33 @@ public final class LevelToolsUtil {
             return null;
         }
         return profileManager.getDisplayProfileFor(itemProfile);
+    }
+
+    private static boolean containsProgressPlaceholder(@NotNull String line) {
+        return line.contains("{progress_bar}")
+                || line.contains("{xp}")
+                || line.contains("{max_xp}")
+                || line.contains("{xp_formatted}")
+                || line.contains("{max_xp_formatted}");
+    }
+
+    @NotNull
+    private static List<String> compactLoreLines(@NotNull List<String> lines) {
+        final List<String> compacted = new ArrayList<>();
+        boolean previousBlank = false;
+        for (String line : lines) {
+            final boolean blank = line.isBlank();
+            if (blank && previousBlank) {
+                continue;
+            }
+            compacted.add(line);
+            previousBlank = blank;
+        }
+
+        while (!compacted.isEmpty() && compacted.getLast().isBlank()) {
+            compacted.removeLast();
+        }
+        return compacted;
     }
 
     private static void smartSetLore(@NotNull ItemMeta meta, @NotNull List<String> toAdd) {

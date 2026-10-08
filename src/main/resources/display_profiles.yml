@@ -66,6 +66,9 @@ profiles:
 
   armor:
     extends: default
+    action_bar:
+      enabled: true
+      text: "&bArmor {slot}: {progress_bar} &e{xp_formatted}&6/&e{max_xp_formatted}"
     lore:
       enabled: true
       lines:
